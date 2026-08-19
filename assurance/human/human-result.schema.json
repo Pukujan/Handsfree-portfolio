@@ -4,12 +4,41 @@
   "title": "G6 blinded human qualification aggregate",
   "type": "object",
   "additionalProperties": false,
-  "required": ["protocolVersion", "candidateRevision", "baselineRevision", "holdoutBundleId", "raterCount", "pairedRatings", "candidatePreferred", "baselinePreferred", "ties", "medianNaturalnessCandidate", "medianNaturalnessBaseline", "medianAnnoyanceCandidate", "medianAnnoyanceBaseline", "criticalIncidents", "decision"],
+  "required": [
+    "protocolVersion",
+    "candidateRevision",
+    "baselineRevision",
+    "holdoutBundleId",
+    "holdoutManifestSha256",
+    "blinding",
+    "raterCount",
+    "pairedRatings",
+    "candidatePreferred",
+    "baselinePreferred",
+    "ties",
+    "medianNaturalnessCandidate",
+    "medianNaturalnessBaseline",
+    "medianAnnoyanceCandidate",
+    "medianAnnoyanceBaseline",
+    "criticalIncidents",
+    "systematicCriticalFailures",
+    "decision"
+  ],
   "properties": {
     "protocolVersion": {"const": "1.0.0"},
-    "candidateRevision": {"type": "string", "minLength": 7},
+    "candidateRevision": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
     "baselineRevision": {"type": "string", "minLength": 7},
     "holdoutBundleId": {"type": "string", "minLength": 8},
+    "holdoutManifestSha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "blinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["anonymizedConditionLabels", "randomizedPairOrder"],
+      "properties": {
+        "anonymizedConditionLabels": {"const": true},
+        "randomizedPairOrder": {"const": true}
+      }
+    },
     "raterCount": {"type": "integer", "minimum": 0},
     "pairedRatings": {"type": "integer", "minimum": 0},
     "candidatePreferred": {"type": "integer", "minimum": 0},
@@ -20,6 +49,7 @@
     "medianAnnoyanceCandidate": {"type": "number", "minimum": 1, "maximum": 7},
     "medianAnnoyanceBaseline": {"type": "number", "minimum": 1, "maximum": 7},
     "criticalIncidents": {"type": "integer", "minimum": 0},
+    "systematicCriticalFailures": {"type": "integer", "minimum": 0},
     "decision": {"enum": ["PASS", "FAIL", "INCONCLUSIVE"]}
   }
 }
