@@ -1,11 +1,13 @@
 # G1 Public Knowledge Verification Receipt
 
 **Gate:** #3
-**Status:** PASS pending receipt-head re-verification
+**Status:** PASS
 **Verified implementation head:** `e1c75b3b05cfe0ca387b4b1f5f9406d32e138c5e`
-**G1 workflow run:** `32297881642`
-**G1 job:** `public-knowledge` / `96213395447`
-**G0 regression run:** `32297881594` — PASS
+**Receipt head:** `17eda2477503cedac548308c3316543d9dd6df3f`
+**Implementation G1 workflow run:** `32297881642` — PASS
+**Implementation G0 regression run:** `32297881594` — PASS
+**Receipt-head G1 workflow run:** `32298033981` — PASS
+**Receipt-head G0 regression run:** `32298033985` — PASS
 
 ## Frozen inputs
 
@@ -59,6 +61,6 @@ See `docs/decisions/ADR-001-public-knowledge-authority.md`.
 
 FOSSIL durable evidence/events/provenance remain canonical. Neo4j is a deterministic disposable projection. Graphiti remains deferred to G2 and must earn runtime use through benchmark evidence.
 
-## Closure rule
+## Closure
 
-Do not close #3 from this receipt alone. Re-run both G0 and G1 on the receipt head and require both PASS.
+Both G0 and G1 passed again on the receipt head. G1 is eligible to close and the control plane may advance to G2.
