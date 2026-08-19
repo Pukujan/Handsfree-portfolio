@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://handsfree-portfolio.dev/contracts/conversation-state-v1.schema.json",
+  "title": "ConversationStateV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "activeGeneration", "state", "activeSubject", "referents"],
+  "properties": {
+    "contractVersion": {"const": "1.0.0"},
+    "activeGeneration": {"type": "integer", "minimum": 0},
+    "state": {"enum": ["idle", "listening", "retrieving", "speaking", "interrupted", "error", "fallback"]},
+    "activeSubject": {"type": ["string", "null"]},
+    "referents": {"type": "object", "additionalProperties": {"type": "string"}}
+  }
+}
