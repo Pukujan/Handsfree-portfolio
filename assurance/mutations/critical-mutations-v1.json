@@ -1,0 +1,16 @@
+{
+  "mutationVersion": "1.0.0",
+  "policy": "Every critical mutant must be applied to production source, make its named oracle test fail, and then be restored byte-for-byte.",
+  "mutations": [
+    {"id":"MUT-PACK-FILTER-DISABLED","target":"services/portfolio-ai/src/handsfree_portfolio/adapters/fossil_pack.py","oracleTest":"services/portfolio-ai/tests/test_fossil_pack.py::test_public_runtime_access_is_read_only_and_single_pack"},
+    {"id":"MUT-STALE-EVIDENCE-ACCEPTED","target":"services/portfolio-ai/src/handsfree_portfolio/application/response_cache.py","oracleTest":"services/portfolio-ai/tests/test_response_cache.py::test_current_evidence_drift_rejects_cached_artifact"},
+    {"id":"MUT-PRIOR-CITATION-REUSED","target":"services/portfolio-ai/src/handsfree_portfolio/application/grounded_rendering.py","oracleTest":"services/portfolio-ai/tests/test_g6_assurance.py::test_evidence_source_or_label_drift_is_rejected"},
+    {"id":"MUT-GENERATION-FENCE-SKIPPED","target":"services/portfolio-ai/src/handsfree_portfolio/adapters/session_memory.py","oracleTest":"services/portfolio-ai/tests/test_conversation_kernel.py::test_new_generation_fences_old_turn_after_blocked_retrieval"},
+    {"id":"MUT-LIFECYCLE-INVERTED","target":"services/portfolio-ai/src/handsfree_portfolio/adapters/fossil_claim_catalog.py","oracleTest":"services/portfolio-ai/tests/test_fossil_pack.py::test_reviewed_claim_preserves_source_and_requires_explicit_lifecycle_transition"},
+    {"id":"MUT-CACHE-VALIDATION-BYPASSED","target":"services/portfolio-ai/src/handsfree_portfolio/application/response_cache.py","oracleTest":"services/portfolio-ai/tests/test_response_cache.py::test_forged_cached_text_is_rejected_by_grounding_verifier"},
+    {"id":"MUT-RENDERER-EXPANSION-ALLOWED","target":"services/portfolio-ai/src/handsfree_portfolio/application/grounded_rendering.py","oracleTest":"services/portfolio-ai/tests/test_conversation_kernel.py::test_renderer_fact_expansion_fails_before_answer_delta"},
+    {"id":"MUT-LATENCY-ALWAYS","target":"apps/web/src/application/latencyBridge.ts","oracleTest":"apps/web/src/application/latencyBridge.test.ts"},
+    {"id":"MUT-LATENCY-NEVER","target":"apps/web/src/application/latencyBridge.ts","oracleTest":"apps/web/src/application/latencyBridge.test.ts"},
+    {"id":"MUT-INTERRUPT-CONTINUES-SPEAKING","target":"apps/web/src/application/HandsFreeController.ts","oracleTest":"apps/web/src/application/HandsFreeController.test.ts — interrupt stops speech and starts listening for the replacement question"}
+  ]
+}
