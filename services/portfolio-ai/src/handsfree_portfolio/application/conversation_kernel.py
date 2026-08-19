@@ -67,6 +67,10 @@ class ConversationKernel:
     def _owns(self, conversation_id: str, generation: int) -> bool:
         return self.sessions.owns_generation(conversation_id, generation)
 
+    def _mark_error_if_owner(self, conversation_id: str, generation: int) -> None:
+        if self._owns(conversation_id, generation):
+            self.sessions.update(conversation_id, generation, status="error")
+
     def stream_turn(self, *, conversation_id: str, question: str) -> Iterator[TurnEvent]:
         question = question.strip()
         if not question:
@@ -104,8 +108,7 @@ class ConversationKernel:
         try:
             result = self.retriever.retrieve(question)
         except Exception as exc:
-            if self._owns(conversation_id, generation):
-                self.sessions.update(conversation_id, generation, status="error")
+            self._mark_error_if_owner(conversation_id, generation)
             yield self._cancelled(turn_id, generation, f"retrieval_failed:{type(exc).__name__}")
             return
 
@@ -113,14 +116,19 @@ class ConversationKernel:
             yield self._cancelled(turn_id, generation, "superseded_during_retrieval")
             return
 
-        plan = build_answer_plan(
-            catalog=self.catalog,
-            result=result,
-            turn_id=turn_id,
-            generation=generation,
-            question=question,
-            subject=subject,
-        )
+        try:
+            plan = build_answer_plan(
+                catalog=self.catalog,
+                result=result,
+                turn_id=turn_id,
+                generation=generation,
+                question=question,
+                subject=subject,
+            )
+        except Exception as exc:
+            self._mark_error_if_owner(conversation_id, generation)
+            yield self._cancelled(turn_id, generation, f"planning_failed:{type(exc).__name__}")
+            return
 
         if plan.evidence:
             yield self._event(
@@ -142,10 +150,15 @@ class ConversationKernel:
             return
 
         self.sessions.update(conversation_id, generation, status="rendering")
-        rendered = self.renderer.render(plan)
-        if not self.verifier.verify(plan, rendered):
-            if self._owns(conversation_id, generation):
-                self.sessions.update(conversation_id, generation, status="error")
+        try:
+            rendered = self.renderer.render(plan)
+            grounded = self.verifier.verify(plan, rendered)
+        except Exception as exc:
+            self._mark_error_if_owner(conversation_id, generation)
+            yield self._cancelled(turn_id, generation, f"render_or_verify_failed:{type(exc).__name__}")
+            return
+        if not grounded:
+            self._mark_error_if_owner(conversation_id, generation)
             yield self._cancelled(turn_id, generation, "grounding_verification_failed")
             return
 
