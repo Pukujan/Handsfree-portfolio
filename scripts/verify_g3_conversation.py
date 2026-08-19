@@ -146,8 +146,6 @@ def main() -> None:
         for events, conversation_id in ((first + second, "live"), (unsupported, "unsupported")):
             validate_events(events, sessions.get(conversation_id))
 
-        # Lifecycle safety: a claim removed from supported state must no longer be retrievable,
-        # even if an exact alias still names its stable ID.
         supersede_claim(workspace, "clm_portfolio_fossil_durable_truth_0001")
         stale_catalog = FossilClaimCatalog(
             event_store=workspace.event_store,
@@ -168,24 +166,27 @@ def main() -> None:
         if event(stale, "answer.delta").payload["text"] != ABSTENTION_TEXT:
             raise SystemExit("superseded exact alias did not fail safely to abstention")
 
-        print(
-            json.dumps(
-                {
-                    "status": "PASS",
-                    "first_turn_ms": round(first_ms, 4),
-                    "first_generation": first[0].generation,
-                    "followup_generation": second[0].generation,
-                    "active_subject": sessions.get("live").active_subject,
-                    "first_claim_ids": event(first, "answer.delta").payload["claimIds"],
-                    "followup_claim_ids": event(second, "answer.delta").payload["claimIds"],
-                    "unsupported_abstained": True,
-                    "superseded_claim_not_presented": True,
-                    "unverified_text_streamed": False,
-                    "contracts_valid": True,
-                },
-                sort_keys=True,
-            )
-        )
+        receipt = {
+            "status": "PASS",
+            "authority": "verification_receipt_only",
+            "first_turn_ms": round(first_ms, 4),
+            "first_generation": first[0].generation,
+            "followup_generation": second[0].generation,
+            "active_subject": sessions.get("live").active_subject,
+            "first_claim_ids": event(first, "answer.delta").payload["claimIds"],
+            "followup_claim_ids": event(second, "answer.delta").payload["claimIds"],
+            "unsupported_abstained": True,
+            "superseded_claim_not_presented": True,
+            "unverified_text_streamed": False,
+            "contracts_valid": True,
+        }
+        rendered = json.dumps(receipt, sort_keys=True)
+        print(rendered)
+        receipt_path = os.environ.get("G3_RECEIPT_PATH")
+        if receipt_path:
+            target = Path(receipt_path)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":
