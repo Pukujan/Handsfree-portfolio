@@ -3,7 +3,18 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-ConversationStatus = Literal["idle", "retrieving", "rendering", "complete", "cancelled", "error"]
+ConversationStatus = Literal[
+    "idle",
+    "listening",
+    "retrieving",
+    "rendering",
+    "speaking",
+    "interrupted",
+    "complete",
+    "cancelled",
+    "error",
+    "fallback",
+]
 TurnEventType = Literal[
     "turn.accepted",
     "retrieval.started",
@@ -23,6 +34,15 @@ class ConversationState:
     status: ConversationStatus = "idle"
     active_subject: str | None = None
     referents: dict[str, str] = field(default_factory=dict)
+
+    def to_contract(self) -> dict[str, Any]:
+        return {
+            "contractVersion": "1.0.0",
+            "activeGeneration": self.active_generation,
+            "state": self.status,
+            "activeSubject": self.active_subject,
+            "referents": dict(self.referents),
+        }
 
 
 @dataclass(frozen=True)
