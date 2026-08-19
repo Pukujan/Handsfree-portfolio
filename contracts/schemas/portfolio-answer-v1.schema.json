@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://handsfree-portfolio.dev/contracts/portfolio-answer-v1.schema.json",
+  "title": "PortfolioAnswerV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "turnId", "generation", "dialogueAct", "claims", "evidence"],
+  "properties": {
+    "contractVersion": {"const": "1.0.0"},
+    "turnId": {"type": "string", "minLength": 1},
+    "generation": {"type": "integer", "minimum": 0},
+    "dialogueAct": {"type": "string", "minLength": 1},
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["claimId", "proposition", "support", "evidenceIds"],
+        "properties": {
+          "claimId": {"type": "string", "minLength": 1},
+          "proposition": {"type": "string", "minLength": 1},
+          "support": {"enum": ["supported", "uncertain", "unsupported"]},
+          "evidenceIds": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["evidenceId", "sourceRef", "label"],
+        "properties": {
+          "evidenceId": {"type": "string", "minLength": 1},
+          "sourceRef": {"type": "string", "minLength": 1},
+          "label": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}
