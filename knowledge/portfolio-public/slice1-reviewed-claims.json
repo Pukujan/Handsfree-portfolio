@@ -1,0 +1,46 @@
+{
+  "contractVersion": "1.0.0",
+  "reviewRef": "handsfree-slice1-fossil-review-v1",
+  "claims": [
+    {
+      "claimId": "clm_portfolio_fossil_durable_truth_0001",
+      "claimText": "FOSSIL's durable knowledge authority is its evidence, stable identities, append-only knowledge events, versioned contracts, provenance, and history—not Neo4j or Graphiti.",
+      "source": {
+        "repository": "Pukujan/fossil-core",
+        "revision": "b5fd57725c910b149910371964adb35d9280016e",
+        "path": "ARCHITECTURE.md",
+        "anchorText": "The durable system is **not** a Neo4j database, a vector index, a Graphiti installation, an embedding model, or an LLM conversation."
+      }
+    },
+    {
+      "claimId": "clm_portfolio_fossil_projection_0001",
+      "claimText": "Graphiti and Neo4j are replaceable projections of already-durable FOSSIL knowledge and must be rebuildable from durable state.",
+      "source": {
+        "repository": "Pukujan/fossil-core",
+        "revision": "b5fd57725c910b149910371964adb35d9280016e",
+        "path": "ARCHITECTURE.md",
+        "anchorText": "Graphiti/Neo4j are projection technology;"
+      }
+    },
+    {
+      "claimId": "clm_portfolio_fossil_pack_boundary_0001",
+      "claimText": "FOSSIL pack identity is independent of physical graph or database placement, and read access is limited to explicitly mounted packs.",
+      "source": {
+        "repository": "Pukujan/fossil-core",
+        "revision": "b5fd57725c910b149910371964adb35d9280016e",
+        "path": "ARCHITECTURE.md",
+        "anchorText": "Pack identity is separate from physical placement."
+      }
+    },
+    {
+      "claimId": "clm_portfolio_fossil_corpus_scope_0001",
+      "claimText": "FOSSIL's CorpusService intentionally exposes no arbitrary Graphiti or Neo4j mutation and checks retrieval results against mounted pack scope.",
+      "source": {
+        "repository": "Pukujan/fossil-core",
+        "revision": "b5fd57725c910b149910371964adb35d9280016e",
+        "path": "src/fossil_core/agent.py",
+        "anchorText": "This service has no Graphiti/Neo4j client and intentionally exposes no"
+      }
+    }
+  ]
+}

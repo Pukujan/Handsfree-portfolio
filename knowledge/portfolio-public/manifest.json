@@ -1,0 +1,17 @@
+{
+  "contract_version": "dkg.pack.v1",
+  "pack_id": "pack_c70aedc3a5bc7600399f22808f4a8de0",
+  "name": "Handsfree Portfolio Public Career Pack",
+  "kind": "project",
+  "description": "Public, provenance-backed career knowledge used by the Handsfree Portfolio runtime.",
+  "schema_version": "dkg.event.v1",
+  "dependencies": [],
+  "read_mounts": ["pack_c70aedc3a5bc7600399f22808f4a8de0"],
+  "write_targets": ["pack_c70aedc3a5bc7600399f22808f4a8de0"],
+  "event_roots": ["events"],
+  "artifact_manifests": ["artifacts/manifest.jsonl"],
+  "placement_hint": "unspecified",
+  "projection_namespace": "handsfree-portfolio-public-v1",
+  "source_policy_ref": "source-policy.json",
+  "created_at": "2026-08-19T19:55:00Z"
+}
