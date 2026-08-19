@@ -36,3 +36,4 @@ class RenderedAnswer:
     generation: int
     text: str
     evidence: tuple[EvidenceRef, ...]
+    claim_ids: tuple[str, ...] = ()
