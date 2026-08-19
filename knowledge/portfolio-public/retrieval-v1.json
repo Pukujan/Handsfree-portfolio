@@ -1,5 +1,5 @@
 {
-  "contractVersion": "1.0.0",
+  "contractVersion": "1.0.1",
   "policyId": "slice1-retrieval-v1",
   "topK": 2,
   "exactAliases": {
@@ -25,6 +25,8 @@
   },
   "graphPolicy": {
     "defaultHotPath": false,
-    "evidenceDrilldownTriggers": ["evidence", "prove", "proof", "source", "why are you saying"]
+    "evidenceDrilldownTriggers": [
+      "evidence", "prove", "proves", "proof", "show source", "show sources", "what source", "which source", "why are you saying"
+    ]
   }
 }
