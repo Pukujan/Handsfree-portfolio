@@ -11,6 +11,7 @@ dependencies = [
   "fastapi>=0.115,<1",
   "uvicorn>=0.30,<1",
   "pydantic>=2.7,<3",
+  "neo4j>=6.2,<7",
   "fossil-core @ git+https://github.com/Pukujan/fossil-core.git@b5fd57725c910b149910371964adb35d9280016e"
 ]
 
