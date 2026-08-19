@@ -1,0 +1,15 @@
+node_modules/
+.pnpm-store/
+dist/
+coverage/
+.vite/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.hypothesis/
+.mutmut-cache/
+.venv/
+.env
+.env.*
+!.env.example
+.DS_Store
