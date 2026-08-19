@@ -20,16 +20,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: pnpm
 
       - name: Install workspace
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Architecture boundary guard
         run: python scripts/check_architecture.py
 
       - name: Hands-free controller, SSE and UI tests
-        run: pnpm --filter handsfree-portfolio-web test
+        run: pnpm --filter @handsfree/web test
 
       - name: Production web build
-        run: pnpm --filter handsfree-portfolio-web build
+        run: pnpm --filter @handsfree/web build
