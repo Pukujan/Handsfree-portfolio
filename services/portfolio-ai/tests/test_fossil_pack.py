@@ -81,16 +81,18 @@ def test_reviewed_claim_preserves_source_and_requires_explicit_lifecycle_transit
         opener=lambda _url: data,
     )
 
-    events = list(ws.event_store.iter_events())
-    assert [event["event_type"] for event in events] == ["claim.proposed", "claim.state_changed"]
-    assert events[0]["payload"]["claim_text"] == claim["claimText"]
-    assert events[1]["payload"]["from_state"] == "proposed"
-    assert events[1]["payload"]["to_state"] == "supported"
-    assert events[1]["caused_by_event_ids"] == [events[0]["event_id"]]
+    events = {event["event_type"]: event for event in ws.event_store.iter_events()}
+    proposed = events["claim.proposed"]
+    supported = events["claim.state_changed"]
+    assert proposed["payload"]["claim_text"] == claim["claimText"]
+    assert supported["payload"]["from_state"] == "proposed"
+    assert supported["payload"]["to_state"] == "supported"
+    assert supported["caused_by_event_ids"] == [proposed["event_id"]]
+    assert supported["recorded_at"] > proposed["recorded_at"]
     assert result["resolved_text"] == claim["source"]["anchorText"]
     assert b"SYSTEM OVERRIDE" in ws.artifact_store.read_bytes(result["artifact_id"])
-    assert events[0]["pack_id"] == PUBLIC_PACK_ID
-    assert events[1]["pack_id"] == PUBLIC_PACK_ID
+    assert proposed["pack_id"] == PUBLIC_PACK_ID
+    assert supported["pack_id"] == PUBLIC_PACK_ID
 
 
 def test_reviewed_claim_replay_is_idempotent_for_same_observation(tmp_path: Path) -> None:
