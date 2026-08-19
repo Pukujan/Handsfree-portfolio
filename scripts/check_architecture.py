@@ -21,6 +21,9 @@ GRAPH_FORBIDDEN_IMPORT_PREFIXES = (
     "fossil_core.s3_storage",
 )
 GRAPH_FORBIDDEN_METHODS = {"commit", "propose", "validate", "redact"}
+CACHE_ADAPTER = ROOT / "services/portfolio-ai/src/handsfree_portfolio/adapters/answer_cache.py"
+CACHE_FORBIDDEN_IMPORT_PREFIXES = ("fossil_core", "neo4j", "graphiti_core")
+CACHE_FORBIDDEN_METHODS = {"commit", "propose", "validate", "redact", "promote"}
 
 WEB_APPLICATION = ROOT / "apps/web/src/application"
 WEB_DESIGN_SYSTEM = ROOT / "apps/web/src/design-system"
@@ -51,6 +54,14 @@ def python_import_modules(path: Path) -> set[str]:
     return modules
 
 
+def class_methods(path: Path, class_name: str) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef) and node.name == class_name:
+            return {child.name for child in node.body if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    return set()
+
+
 def extract_ts_imports(text: str) -> list[str]:
     imports: list[str] = []
     for line in text.splitlines():
@@ -72,18 +83,24 @@ def main() -> None:
                 violations.append(f"{path.relative_to(ROOT)} imports forbidden inward dependency: {sorted(forbidden)}")
 
     if GRAPH_ADAPTER.exists():
-        graph_tree = ast.parse(GRAPH_ADAPTER.read_text(encoding="utf-8"), filename=str(GRAPH_ADAPTER))
         for module in python_import_modules(GRAPH_ADAPTER):
             if module.startswith(GRAPH_FORBIDDEN_IMPORT_PREFIXES):
                 violations.append(f"{GRAPH_ADAPTER.relative_to(ROOT)} imports durable mutation infrastructure: {module}")
-        for node in graph_tree.body:
-            if isinstance(node, ast.ClassDef) and node.name == "Neo4jClaimProjectionAdapter":
-                methods = {child.name for child in node.body if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))}
-                forbidden_methods = methods & GRAPH_FORBIDDEN_METHODS
-                if forbidden_methods:
-                    violations.append(
-                        f"{GRAPH_ADAPTER.relative_to(ROOT)} exposes forbidden canonical mutation methods: {sorted(forbidden_methods)}"
-                    )
+        forbidden_methods = class_methods(GRAPH_ADAPTER, "Neo4jClaimProjectionAdapter") & GRAPH_FORBIDDEN_METHODS
+        if forbidden_methods:
+            violations.append(
+                f"{GRAPH_ADAPTER.relative_to(ROOT)} exposes forbidden canonical mutation methods: {sorted(forbidden_methods)}"
+            )
+
+    if CACHE_ADAPTER.exists():
+        for module in python_import_modules(CACHE_ADAPTER):
+            if module.startswith(CACHE_FORBIDDEN_IMPORT_PREFIXES):
+                violations.append(f"{CACHE_ADAPTER.relative_to(ROOT)} reaches canonical/projection infrastructure: {module}")
+        forbidden_methods = class_methods(CACHE_ADAPTER, "InMemoryAnswerCache") & CACHE_FORBIDDEN_METHODS
+        if forbidden_methods:
+            violations.append(
+                f"{CACHE_ADAPTER.relative_to(ROOT)} exposes forbidden truth-mutation methods: {sorted(forbidden_methods)}"
+            )
 
     for path in WEB_APPLICATION.rglob("*.ts*"):
         for imp in extract_ts_imports(path.read_text(encoding="utf-8")):

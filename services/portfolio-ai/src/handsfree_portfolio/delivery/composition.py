@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import hashlib
 import os
 from functools import lru_cache
 from pathlib import Path
 
+from handsfree_portfolio.adapters.answer_cache import InMemoryAnswerCache
+from handsfree_portfolio.adapters.cache_authority import FossilPackAuthorityFingerprint
 from handsfree_portfolio.adapters.clock import SystemClock
 from handsfree_portfolio.adapters.fossil_claim_catalog import FossilClaimCatalog
 from handsfree_portfolio.adapters.fossil_pack import FossilPackWorkspace, FossilSchemaRoot, public_runtime_access
@@ -11,6 +14,7 @@ from handsfree_portfolio.adapters.retrieval_policy import load_retrieval_policy
 from handsfree_portfolio.adapters.session_memory import InMemoryConversationSessions
 from handsfree_portfolio.application.conversation_kernel import ConversationKernel
 from handsfree_portfolio.application.grounded_rendering import ClaimBoundTemplateRenderer, DeterministicGroundingVerifier
+from handsfree_portfolio.application.response_cache import ResponseCacheCoordinator
 from handsfree_portfolio.application.retrieval import PublicClaimRetriever
 
 
@@ -28,6 +32,10 @@ def _required_path(name: str) -> Path:
     return path
 
 
+def _file_revision(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 @lru_cache(maxsize=1)
 def runtime_kernel() -> ConversationKernel:
     pack_root = _required_path("PORTFOLIO_PACK_ROOT")
@@ -38,17 +46,28 @@ def runtime_kernel() -> ConversationKernel:
 
     workspace = FossilPackWorkspace(pack_root, FossilSchemaRoot(schema_root))
     workspace.load_manifest()
+    access = public_runtime_access()
     catalog = FossilClaimCatalog(
         event_store=workspace.event_store,
         source_store=workspace.source_store,
-        access=public_runtime_access(),
+        access=access,
     )
+    verifier = DeterministicGroundingVerifier()
     retriever = PublicClaimRetriever(catalog, load_retrieval_policy(policy_path))
+    answer_cache = InMemoryAnswerCache(max_entries=int(os.environ.get("PORTFOLIO_CACHE_MAX_ENTRIES", "256")))
+    response_cache = ResponseCacheCoordinator(
+        catalog=catalog,
+        cache=answer_cache,
+        authority=FossilPackAuthorityFingerprint(event_store=workspace.event_store, access=access),
+        verifier=verifier,
+        retrieval_policy_revision=_file_revision(policy_path),
+    )
     return ConversationKernel(
         catalog=catalog,
         retriever=retriever,
         sessions=InMemoryConversationSessions(),
         renderer=ClaimBoundTemplateRenderer(),
-        verifier=DeterministicGroundingVerifier(),
+        verifier=verifier,
         clock=SystemClock(),
+        response_cache=response_cache,
     )
