@@ -17,7 +17,8 @@ PYTHON_FORBIDDEN = {
 
 WEB_APPLICATION = ROOT / "apps/web/src/application"
 WEB_DESIGN_SYSTEM = ROOT / "apps/web/src/design-system"
-WEB_FORBIDDEN_APPLICATION = {"react", "react-dom", "neo4j", "openai", "@anthropic-ai/sdk"}
+WEB_FORBIDDEN_APPLICATION_PACKAGES = {"react", "react-dom", "neo4j", "openai", "@anthropic-ai/sdk"}
+WEB_FORBIDDEN_APPLICATION_PATHS = ("../design-system", "../adapters", "../ui")
 WEB_FORBIDDEN_DESIGN_PATHS = ("../application", "../adapters")
 
 
@@ -54,7 +55,8 @@ def main() -> None:
 
     for path in WEB_APPLICATION.rglob("*.ts*"):
         for imp in extract_ts_imports(path.read_text(encoding="utf-8")):
-            if imp.split("/")[0] in WEB_FORBIDDEN_APPLICATION:
+            package_root = "/".join(imp.split("/")[:2]) if imp.startswith("@") else imp.split("/")[0]
+            if package_root in WEB_FORBIDDEN_APPLICATION_PACKAGES or imp.startswith(WEB_FORBIDDEN_APPLICATION_PATHS):
                 violations.append(f"{path.relative_to(ROOT)} imports forbidden application dependency: {imp}")
 
     for path in WEB_DESIGN_SYSTEM.rglob("*.ts*"):
