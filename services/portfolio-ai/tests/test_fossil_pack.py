@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from fossil_core.domain.pack import PackBoundaryError
 
+from handsfree_portfolio.adapters.fossil_claim_catalog import FossilClaimCatalog
 from handsfree_portfolio.adapters.fossil_pack import (
     PUBLIC_PACK_ID,
     FossilPackWorkspace,
@@ -93,6 +94,14 @@ def test_reviewed_claim_preserves_source_and_requires_explicit_lifecycle_transit
     assert b"SYSTEM OVERRIDE" in ws.artifact_store.read_bytes(result["artifact_id"])
     assert proposed["pack_id"] == PUBLIC_PACK_ID
     assert supported["pack_id"] == PUBLIC_PACK_ID
+
+    catalog = FossilClaimCatalog(event_store=ws.event_store, source_store=ws.source_store, access=public_runtime_access())
+    record = catalog.get(claim["claimId"])
+    assert record.proposition == claim["claimText"]
+    assert record.cited_text == claim["source"]["anchorText"]
+    assert record.source_ref.endswith(f"@{claim['source']['revision']}:{claim['source']['path']}")
+    assert record.evidence_ids == (result["artifact_id"],)
+    assert record.snapshot_ids == (result["snapshot_id"],)
 
 
 def test_reviewed_claim_replay_is_idempotent_for_same_observation(tmp_path: Path) -> None:
