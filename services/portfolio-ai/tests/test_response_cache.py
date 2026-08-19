@@ -45,6 +45,20 @@ class MutableCatalog:
     def remove(self, claim_id: str) -> None:
         self.records = [record for record in self.records if record.claim_id != claim_id]
 
+    def replace_evidence(self, claim_id: str, evidence_id: str) -> None:
+        self.records = [
+            PublicClaimRecord(
+                claim_id=record.claim_id,
+                proposition=record.proposition,
+                evidence_ids=(evidence_id,) if record.claim_id == claim_id else record.evidence_ids,
+                snapshot_ids=record.snapshot_ids,
+                citation_id=record.citation_id,
+                source_ref=record.source_ref,
+                cited_text=record.cited_text,
+            )
+            for record in self.records
+        ]
+
 
 class MutableAuthority:
     def __init__(self, value: str = "authority-v1") -> None:
@@ -138,6 +152,16 @@ def test_repeated_grounded_question_uses_validated_cache_hit_without_retrieval()
     assert metrics.false_hit_incidents == 0
 
 
+def test_authority_revision_is_material_cache_key_input() -> None:
+    kernel, coordinator, _retriever, _cache, authority, _catalog = make_cached_kernel()
+    list(kernel.stream_turn(conversation_id="key-authority", question="What is FOSSIL?"))
+    state = kernel.sessions.get("key-authority")
+    first_key = coordinator.key_for(question="What is FOSSIL?", subject=state.active_subject, referents=state.referents)
+    authority.value = "authority-v2"
+    second_key = coordinator.key_for(question="What is FOSSIL?", subject=state.active_subject, referents=state.referents)
+    assert first_key != second_key
+
+
 def test_authority_revision_change_forces_retrieval_miss() -> None:
     kernel, _coordinator, retriever, _cache, authority, _catalog = make_cached_kernel()
     list(kernel.stream_turn(conversation_id="authority", question="What is FOSSIL?"))
@@ -155,6 +179,18 @@ def test_current_catalog_revalidation_rejects_stale_cached_claim() -> None:
     second = list(kernel.stream_turn(conversation_id="stale", question="What is FOSSIL?"))
     assert "retrieval.started" in [item.type for item in second]
     assert event(second, "answer.delta").payload["claimIds"] == []
+    assert retriever.calls == 2
+    assert cache.snapshot_metrics().stale_rejections == 1
+
+
+def test_current_evidence_drift_rejects_cached_artifact() -> None:
+    kernel, _coordinator, retriever, cache, _authority, catalog = make_cached_kernel()
+    list(kernel.stream_turn(conversation_id="evidence-drift", question="What is FOSSIL?"))
+    catalog.replace_evidence("clm_portfolio_fossil_durable_truth_0001", "fixture:replacement:evidence")
+
+    second = list(kernel.stream_turn(conversation_id="evidence-drift", question="What is FOSSIL?"))
+    assert "retrieval.started" in [item.type for item in second]
+    assert event(second, "answer.delta").payload["evidenceIds"] == ["fixture:replacement:evidence"]
     assert retriever.calls == 2
     assert cache.snapshot_metrics().stale_rejections == 1
 
