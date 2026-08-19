@@ -1,0 +1,128 @@
+{
+  "catalog_id": "handsfree-portfolio-properties-v1",
+  "version": "1.0.0",
+  "status": "initial",
+  "properties": [
+    {
+      "id": "PORTFOLIO-PROP-GROUNDING-001",
+      "criticality": "critical",
+      "statement": "Every externally presented factual career or technical claim is supported by authorized public evidence or explicitly represented as uncertainty.",
+      "owner": "answer-pipeline",
+      "oracles": ["claim-evidence-resolution", "unsupported-claim-rejection"],
+      "property_tests": ["generated-supported-and-unsupported-claim-sets"],
+      "mutation_targets": ["skip-grounding-check", "invert-support-decision"],
+      "hidden_acceptance": true
+    },
+    {
+      "id": "PORTFOLIO-PROP-PACK-ISOLATION-001",
+      "criticality": "critical",
+      "statement": "Public sessions can read only explicitly mounted public portfolio packs and cannot widen their own authority.",
+      "owner": "knowledge-boundary",
+      "oracles": ["mounted-pack-allowlist", "private-pack-denial"],
+      "property_tests": ["generated-pack-manifests-and-read-attempts"],
+      "mutation_targets": ["disable-pack-filter", "merge-private-pack-results"],
+      "hidden_acceptance": true
+    },
+    {
+      "id": "PORTFOLIO-PROP-GRAPH-NONAUTHORITY-001",
+      "criticality": "critical",
+      "statement": "Graphiti/Neo4j may supply retrieval context but cannot create, promote, or redefine canonical FOSSIL career knowledge.",
+      "owner": "graph-adapter",
+      "oracles": ["canonical-source-check", "graph-write-authority-denial"],
+      "property_tests": ["graph-present-absent-divergent-projections"],
+      "mutation_targets": ["treat-graph-hit-as-canonical", "use-graph-node-id-as-stable-id"],
+      "hidden_acceptance": false
+    },
+    {
+      "id": "PORTFOLIO-PROP-CACHE-NONAUTHORITY-001",
+      "criticality": "critical",
+      "statement": "Cached answer artifacts cannot create authority or bypass pack, lifecycle, evidence, version, or grounding checks.",
+      "owner": "cache-adapter",
+      "oracles": ["cache-eligibility-validation", "evidence-currentness-check"],
+      "property_tests": ["pack-revision-and-lifecycle-change-sequences"],
+      "mutation_targets": ["omit-pack-revision-key", "skip-cache-validation", "ignore-redaction-invalidation"],
+      "hidden_acceptance": true
+    },
+    {
+      "id": "PORTFOLIO-PROP-TURN-GENERATION-001",
+      "criticality": "critical",
+      "statement": "Only the newest live conversation generation may publish visible or spoken output.",
+      "owner": "conversation-kernel",
+      "oracles": ["active-generation-match", "stale-publication-rejection"],
+      "property_tests": ["generated-interruption-cancellation-retrieval-delay-histories"],
+      "mutation_targets": ["remove-generation-check", "publish-stale-retrieval"],
+      "formal_trigger": "Model in TLA+ only if state-machine/property testing leaves meaningful concurrency uncertainty.",
+      "hidden_acceptance": true
+    },
+    {
+      "id": "PORTFOLIO-PROP-RENDERER-NONEXPANSION-001",
+      "criticality": "critical",
+      "statement": "The conversational renderer may paraphrase supported claims but cannot introduce a new factual proposition.",
+      "owner": "conversation-renderer",
+      "oracles": ["claim-plan-entailment-or-structured-proposition-check"],
+      "property_tests": ["generated-claim-plans-and-style-rewrites"],
+      "mutation_targets": ["allow-renderer-extra-fact", "drop-claim-boundary"],
+      "hidden_acceptance": true
+    },
+    {
+      "id": "PORTFOLIO-PROP-CITATION-INTEGRITY-001",
+      "criticality": "critical",
+      "statement": "Displayed evidence and citations correspond to evidence actually used for the current answer and resolve to the intended immutable public source snapshot.",
+      "owner": "evidence-presentation",
+      "oracles": ["answer-evidence-id-match", "source-snapshot-resolution"],
+      "property_tests": ["generated-turns-with-overlapping-and-stale-evidence"],
+      "mutation_targets": ["reuse-previous-turn-citation", "substitute-nearest-source"],
+      "hidden_acceptance": true
+    },
+    {
+      "id": "PORTFOLIO-PROP-LATENCY-TRUTH-001",
+      "criticality": "high",
+      "statement": "A conversational latency acknowledgement may be emitted only while qualifying real work remains pending and must describe that work truthfully.",
+      "owner": "conversation-ux",
+      "oracles": ["pending-work-state-check", "bridge-rate-limit"],
+      "property_tests": ["generated-fast-normal-slow-retrieval-timings"],
+      "mutation_targets": ["always-emit-bridge", "emit-bridge-after-completion"],
+      "hidden_acceptance": false
+    },
+    {
+      "id": "PORTFOLIO-PROP-INTERRUPTION-001",
+      "criticality": "critical",
+      "statement": "A user interruption or new turn fences stale pending retrieval, rendering, streaming, and speech work from becoming current output.",
+      "owner": "conversation-kernel",
+      "oracles": ["cancellation-token-or-generation-fence", "speech-stop-state"],
+      "property_tests": ["generated-barge-in-and-topic-switch-histories"],
+      "mutation_targets": ["continue-speaking-after-interruption", "resume-cancelled-answer"],
+      "hidden_acceptance": true
+    },
+    {
+      "id": "PORTFOLIO-PROP-THEME-NONINTERFERENCE-001",
+      "criticality": "high",
+      "statement": "Theme, motion, visualizer, and layout choices cannot alter retrieval, grounding, mounted authority, privacy, claims, or answer semantics.",
+      "owner": "design-system",
+      "oracles": ["cross-theme-answer-contract-equivalence"],
+      "property_tests": ["same-turn-across-theme-presets"],
+      "mutation_targets": ["theme-selects-pack", "theme-changes-backend-authority"],
+      "hidden_acceptance": false
+    },
+    {
+      "id": "PORTFOLIO-PROP-GRAPH-REBUILD-001",
+      "criticality": "critical",
+      "statement": "Deleting Graphiti/Neo4j projection storage does not destroy canonical career knowledge; required graph semantics can be rebuilt from authorized FOSSIL durable state.",
+      "owner": "knowledge-projection",
+      "oracles": ["destructive-rebuild-semantic-digest", "benchmark-question-equivalence"],
+      "property_tests": ["fresh-projection-rebuilds"],
+      "mutation_targets": ["persist-canonical-only-in-graph", "skip-event-during-rebuild"],
+      "hidden_acceptance": false
+    },
+    {
+      "id": "PORTFOLIO-PROP-SOURCE-UNTRUSTED-001",
+      "criticality": "critical",
+      "statement": "Retrieved repository, document, blog, and source text remains inert untrusted data and cannot become executable policy or widen capabilities merely because it was retrieved.",
+      "owner": "retrieval-context",
+      "oracles": ["policy-source-separation", "capability-allowlist"],
+      "property_tests": ["prompt-like-and-malicious-source-corpus"],
+      "mutation_targets": ["concatenate-source-into-system-policy", "honor-retrieved-tool-instruction"],
+      "hidden_acceptance": true
+    }
+  ]
+}
