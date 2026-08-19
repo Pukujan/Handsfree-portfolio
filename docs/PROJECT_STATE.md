@@ -1,10 +1,10 @@
 # Project State
 
 **Project:** Handsfree Portfolio
-**State:** G1 PUBLIC KNOWLEDGE ACTIVE
+**State:** G2 RETRIEVAL BENCHMARK ACTIVE
 **Control ledger:** GitHub Issue #1
-**Completed gate:** Issue #2 (G0) — PASS, receipt `docs/receipts/G0-FOUNDATION.md`
-**Current executable gate:** Issue #3 (G1)
+**Completed gates:** Issue #2 (G0), Issue #3 (G1)
+**Current executable gate:** Issue #4 (G2)
 **First vertical slice:** Issue #12
 
 ## Continuation order
@@ -19,25 +19,49 @@ Before implementation or architecture mutation, read:
 
 Chat transcripts are source material, not the control plane.
 
-## Current evidence
+## Completed evidence
 
-G0 is complete. Verification PR #14 merged after full CI PASS. Final receipt-head verification run `32295376606` passed web install/build/tests, Python install, architecture boundary checks, JSON contract validation, and API/property tests.
+### G0
 
-## Current authorization — G1
+Verification PR #14 merged after full CI PASS. Durable receipt: `docs/receipts/G0-FOUNDATION.md`.
 
-Implement the narrow public FOSSIL knowledge boundary required by Slice 1. Do not broaden into the full career graph yet.
+### G1
 
-Required initial scope:
-- Pujan identity only where needed for Slice 1;
-- FOSSIL project identity and architecture claims needed for “What is FOSSIL and why does it matter?”;
-- evidence for durable truth vs Graphiti/Neo4j projection;
-- explicit public pack manifest and source revision provenance;
-- public runtime read-only mount semantics;
-- graph projection contract and destructive rebuild oracle.
+PR #15 merged as `b46da3f169b1281494ac48514dac91ceffafca1b`.
+Durable receipt: `docs/receipts/G1-PUBLIC-KNOWLEDGE.md`.
 
-Do not ingest private repositories, employer/client data, private study logs, or broad career history in G1.
+Verified public knowledge baseline:
+- FOSSIL exact pin `b5fd57725c910b149910371964adb35d9280016e`;
+- stable public pack ID `pack_c70aedc3a5bc7600399f22808f4a8de0` / alias `portfolio-public`;
+- 4 reviewed Slice-1 claims, 8 durable events, 2 deduplicated immutable source snapshots;
+- exact byte citations and supported lifecycle replay;
+- public runtime read-only single-pack access;
+- deterministic Neo4j projection destroyed and rebuilt twice with semantic digest `24ff67a9d4353084ff57f590bc52d5bb3ea8a3cac723bbde7f7db61deb404da8`;
+- Graphiti deferred until retrieval benchmark evidence justifies it.
 
-### Slice 1 target
+## Current authorization — G2
+
+Benchmark retrieval over the authoritative supported-claim catalog before adding runtime complexity.
+
+Required question classes for the narrow Slice-1 corpus:
+- direct identity/definition: “What is FOSSIL?”;
+- architecture correction: “Why not just use Neo4j?”;
+- authority/provenance: “What is actually durable?” / “What proves that?”;
+- pack/security: “How does FOSSIL stop a query from reading everything?”;
+- graph authority challenge: “Can Neo4j create truth?”;
+- irrelevant/unsupported query requiring abstention.
+
+Baseline order:
+1. deterministic exact/alias lookup;
+2. simple sparse/lexical ranking over supported public claims;
+3. graph-local retrieval over the disposable Neo4j projection;
+4. richer embedding/Graphiti retrieval only if a named benchmark gap remains.
+
+G2 must measure correctness/coverage, citation resolvability, abstention behavior and latency. Graph or embedding mechanisms enter the hot path only where they materially improve a named benchmark class.
+
+Do not add answer generation, voice behavior or caching policy in G2.
+
+## Slice 1 target
 
 Hands-free recruiter conversation:
 - “What is FOSSIL and why does it matter?”
@@ -50,7 +74,7 @@ Hands-free recruiter conversation:
 ## Gate order
 
 - [x] #2 G0 Foundation
-- [ ] #3 G1 Public FOSSIL knowledge pack
+- [x] #3 G1 Public FOSSIL knowledge pack
 - [ ] #4 G2 Retrieval benchmark
 - [ ] #5 G3 Conversation kernel
 - [ ] #6 G4 Hands-free UX
