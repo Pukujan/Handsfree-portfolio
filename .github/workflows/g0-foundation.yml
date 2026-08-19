@@ -1,0 +1,49 @@
+name: g0-foundation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10 --activate
+
+      - name: Install web dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build web
+        run: pnpm build:web
+
+      - name: Test web
+        run: pnpm test:web
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install API development dependencies
+        run: python -m pip install -e 'services/portfolio-ai[dev]'
+
+      - name: Architecture boundaries
+        run: python scripts/check_architecture.py
+
+      - name: Contract validation
+        run: python scripts/validate_contracts.py
+
+      - name: API tests
+        run: python -m pytest services/portfolio-ai/tests
