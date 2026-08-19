@@ -1,0 +1,17 @@
+{
+  "contractVersion": "1.0.0",
+  "policyId": "portfolio-public-slice1-source-policy",
+  "publicOnly": true,
+  "allowUnpinnedRevision": false,
+  "repositories": [
+    {
+      "repository": "Pukujan/fossil-core",
+      "revision": "b5fd57725c910b149910371964adb35d9280016e",
+      "paths": [
+        "ARCHITECTURE.md",
+        "docs/architecture/public-api.md",
+        "src/fossil_core/agent.py"
+      ]
+    }
+  ]
+}
