@@ -1,0 +1,82 @@
+name: g6-assurance
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  machine-assurance:
+    runs-on: ubuntu-latest
+    env:
+      FOSSIL_SHA: b5fd57725c910b149910371964adb35d9280016e
+      FOSSIL_SCHEMA_ROOT: /tmp/fossil-core/schemas
+      G6_MUTATION_RECEIPT_PATH: /tmp/g6-mutation-receipt.json
+      G6_SIMULATOR_RECEIPT_PATH: /tmp/g6-simulator-receipt.json
+      G6_MACHINE_RECEIPT_PATH: /tmp/g6-machine-receipt.json
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install web workspace
+        run: pnpm install --no-frozen-lockfile
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install API development dependencies
+        run: python -m pip install -e 'services/portfolio-ai[dev]'
+
+      - name: Checkout exact FOSSIL schemas
+        run: |
+          git init /tmp/fossil-core
+          git -C /tmp/fossil-core remote add origin https://github.com/Pukujan/fossil-core.git
+          git -C /tmp/fossil-core fetch --depth=1 origin "$FOSSIL_SHA"
+          git -C /tmp/fossil-core checkout --detach FETCH_HEAD
+          test "$(git -C /tmp/fossil-core rev-parse HEAD)" = "$FOSSIL_SHA"
+
+      - name: Architecture and shared contract guards
+        run: |
+          python scripts/check_architecture.py
+          python scripts/validate_contracts.py
+
+      - name: Cross-gate deterministic and property tests
+        run: |
+          python -m pytest -q \
+            services/portfolio-ai/tests/test_fossil_pack.py \
+            services/portfolio-ai/tests/test_conversation_kernel.py \
+            services/portfolio-ai/tests/test_response_cache.py \
+            services/portfolio-ai/tests/test_cache_authority.py \
+            services/portfolio-ai/tests/test_g6_assurance.py \
+            services/portfolio-ai/tests/test_g6_adversarial.py \
+            services/portfolio-ai/tests/test_api.py
+
+      - name: Hands-free, latency and UI behavior tests
+        run: pnpm --filter @handsfree/web test
+
+      - name: Deterministic persona workload
+        run: python scripts/run_g6_simulator.py
+
+      - name: Kill critical production-source mutants
+        run: python scripts/verify_g6_mutations.py
+
+      - name: Emit machine-assurance / human-required receipt
+        run: python scripts/verify_g6_machine.py
+
+      - name: Upload G6 machine receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: g6-machine-assurance-receipts
+          path: /tmp/g6-*-receipt.json
+          if-no-files-found: error
+          retention-days: 30
