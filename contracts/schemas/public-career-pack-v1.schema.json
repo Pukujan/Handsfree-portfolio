@@ -4,10 +4,11 @@
   "title": "PublicCareerPackV1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["contractVersion", "packId", "revision", "visibility", "readOnlyRuntime", "entityTypes", "relationTypes"],
+  "required": ["contractVersion", "packId", "alias", "revision", "visibility", "readOnlyRuntime", "entityTypes", "relationTypes"],
   "properties": {
     "contractVersion": {"const": "1.0.0"},
-    "packId": {"const": "portfolio-public"},
+    "packId": {"const": "pack_c70aedc3a5bc7600399f22808f4a8de0"},
+    "alias": {"const": "portfolio-public"},
     "revision": {"type": "string", "minLength": 1},
     "visibility": {"const": "public"},
     "readOnlyRuntime": {"const": true},
