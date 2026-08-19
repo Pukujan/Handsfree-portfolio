@@ -1,0 +1,44 @@
+name: g1-public-knowledge
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-knowledge:
+    runs-on: ubuntu-latest
+    env:
+      FOSSIL_SHA: b5fd57725c910b149910371964adb35d9280016e
+      FOSSIL_SCHEMA_ROOT: /tmp/fossil-core/schemas
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install API development dependencies with pinned FOSSIL
+        run: python -m pip install -e 'services/portfolio-ai[dev]'
+
+      - name: Checkout exact FOSSIL schemas
+        run: |
+          git init /tmp/fossil-core
+          git -C /tmp/fossil-core remote add origin https://github.com/Pukujan/fossil-core.git
+          git -C /tmp/fossil-core fetch --depth=1 origin "$FOSSIL_SHA"
+          git -C /tmp/fossil-core checkout --detach FETCH_HEAD
+          test "$(git -C /tmp/fossil-core rev-parse HEAD)" = "$FOSSIL_SHA"
+
+      - name: Foundation architecture guard
+        run: python scripts/check_architecture.py
+
+      - name: Shared contract validation
+        run: python scripts/validate_contracts.py
+
+      - name: Pinned-source and FOSSIL pack tests
+        run: python -m pytest services/portfolio-ai/tests/test_public_source.py services/portfolio-ai/tests/test_fossil_pack.py
+
+      - name: Live exact-SHA Slice-1 source ingestion and replay
+        run: python scripts/verify_g1_live.py
