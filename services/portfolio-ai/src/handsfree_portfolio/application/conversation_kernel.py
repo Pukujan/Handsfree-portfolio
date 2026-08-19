@@ -5,8 +5,9 @@ from typing import Iterator
 from uuid import uuid4
 
 from handsfree_portfolio.application.conversation_planning import build_answer_plan, infer_subject, update_referents
+from handsfree_portfolio.application.response_cache import ResponseCacheCoordinator
 from handsfree_portfolio.domain.conversation import TurnEvent
-from handsfree_portfolio.domain.models import AnswerPlan
+from handsfree_portfolio.domain.models import AnswerPlan, RenderedAnswer
 from handsfree_portfolio.ports.interfaces import (
     ClaimCatalogPort,
     ClaimRetrieverPort,
@@ -51,6 +52,7 @@ class ConversationKernel:
     renderer: RendererPort
     verifier: GroundingVerifierPort
     clock: ClockPort
+    response_cache: ResponseCacheCoordinator | None = None
 
     def _event(self, turn_id: str, generation: int, event_type: str, payload: dict | None = None) -> TurnEvent:
         return TurnEvent(
@@ -70,6 +72,76 @@ class ConversationKernel:
     def _mark_error_if_owner(self, conversation_id: str, generation: int) -> None:
         if self._owns(conversation_id, generation):
             self.sessions.update(conversation_id, generation, status="error")
+
+    def _publish_verified(
+        self,
+        *,
+        conversation_id: str,
+        turn_id: str,
+        generation: int,
+        subject: str | None,
+        plan: AnswerPlan,
+        rendered: RenderedAnswer,
+        cancellation_prefix: str,
+    ) -> Iterator[TurnEvent]:
+        if plan.evidence:
+            yield self._event(
+                turn_id,
+                generation,
+                "evidence.found",
+                {
+                    "claimIds": [claim.claim_id for claim in plan.claims],
+                    "evidenceIds": [item.evidence_id for item in plan.evidence],
+                },
+            )
+            if not self._owns(conversation_id, generation):
+                yield self._cancelled(turn_id, generation, f"superseded_{cancellation_prefix}_after_evidence")
+                return
+
+        self.sessions.update(conversation_id, generation, status="rendering")
+        yield self._event(turn_id, generation, "answer.planned", answer_plan_contract(plan))
+        if not self._owns(conversation_id, generation):
+            yield self._cancelled(turn_id, generation, f"superseded_{cancellation_prefix}_after_plan")
+            return
+
+        yield self._event(
+            turn_id,
+            generation,
+            "answer.delta",
+            {
+                "text": rendered.text,
+                "claimIds": list(rendered.claim_ids),
+                "evidenceIds": [item.evidence_id for item in rendered.evidence],
+            },
+        )
+        if not self._owns(conversation_id, generation):
+            yield self._cancelled(turn_id, generation, f"superseded_{cancellation_prefix}_after_delta")
+            return
+
+        yield self._event(
+            turn_id,
+            generation,
+            "answer.grounded",
+            {
+                "claimIds": list(rendered.claim_ids),
+                "evidenceIds": [item.evidence_id for item in rendered.evidence],
+            },
+        )
+        if not self._owns(conversation_id, generation):
+            yield self._cancelled(turn_id, generation, f"superseded_{cancellation_prefix}_before_completion")
+            return
+
+        self.sessions.update(conversation_id, generation, status="complete")
+        yield self._event(
+            turn_id,
+            generation,
+            "turn.complete",
+            {
+                "claimIds": list(rendered.claim_ids),
+                "evidenceIds": [item.evidence_id for item in rendered.evidence],
+                "activeSubject": subject,
+            },
+        )
 
     def stream_turn(self, *, conversation_id: str, question: str) -> Iterator[TurnEvent]:
         question = question.strip()
@@ -103,6 +175,29 @@ class ConversationKernel:
             yield self._cancelled(turn_id, generation, "superseded_before_retrieval")
             return
 
+        if self.response_cache is not None:
+            cached = self.response_cache.lookup(
+                question=question,
+                subject=subject,
+                referents=referents,
+                turn_id=turn_id,
+                generation=generation,
+            )
+            if not self._owns(conversation_id, generation):
+                yield self._cancelled(turn_id, generation, "superseded_during_cache_validation")
+                return
+            if cached is not None:
+                yield from self._publish_verified(
+                    conversation_id=conversation_id,
+                    turn_id=turn_id,
+                    generation=generation,
+                    subject=subject,
+                    plan=cached.plan,
+                    rendered=cached.rendered,
+                    cancellation_prefix="cache",
+                )
+                return
+
         # This event is emitted only because retrieval is about to execute.
         yield self._event(turn_id, generation, "retrieval.started", {"activeSubject": subject})
         try:
@@ -130,25 +225,6 @@ class ConversationKernel:
             yield self._cancelled(turn_id, generation, f"planning_failed:{type(exc).__name__}")
             return
 
-        if plan.evidence:
-            yield self._event(
-                turn_id,
-                generation,
-                "evidence.found",
-                {
-                    "claimIds": [claim.claim_id for claim in plan.claims],
-                    "evidenceIds": [item.evidence_id for item in plan.evidence],
-                },
-            )
-            if not self._owns(conversation_id, generation):
-                yield self._cancelled(turn_id, generation, "superseded_after_evidence")
-                return
-
-        yield self._event(turn_id, generation, "answer.planned", answer_plan_contract(plan))
-        if not self._owns(conversation_id, generation):
-            yield self._cancelled(turn_id, generation, "superseded_after_plan")
-            return
-
         self.sessions.update(conversation_id, generation, status="rendering")
         try:
             rendered = self.renderer.render(plan)
@@ -166,42 +242,25 @@ class ConversationKernel:
             yield self._cancelled(turn_id, generation, "superseded_before_publication")
             return
 
+        if self.response_cache is not None:
+            self.response_cache.store(
+                question=question,
+                subject=subject,
+                referents=referents,
+                plan=plan,
+                rendered=rendered,
+            )
+            if not self._owns(conversation_id, generation):
+                yield self._cancelled(turn_id, generation, "superseded_during_cache_store")
+                return
+
         # No unverified answer text is ever streamed. Delta publication starts only after verification.
-        yield self._event(
-            turn_id,
-            generation,
-            "answer.delta",
-            {
-                "text": rendered.text,
-                "claimIds": list(rendered.claim_ids),
-                "evidenceIds": [item.evidence_id for item in rendered.evidence],
-            },
-        )
-        if not self._owns(conversation_id, generation):
-            yield self._cancelled(turn_id, generation, "superseded_after_delta")
-            return
-
-        yield self._event(
-            turn_id,
-            generation,
-            "answer.grounded",
-            {
-                "claimIds": list(rendered.claim_ids),
-                "evidenceIds": [item.evidence_id for item in rendered.evidence],
-            },
-        )
-        if not self._owns(conversation_id, generation):
-            yield self._cancelled(turn_id, generation, "superseded_before_completion")
-            return
-
-        self.sessions.update(conversation_id, generation, status="complete")
-        yield self._event(
-            turn_id,
-            generation,
-            "turn.complete",
-            {
-                "claimIds": list(rendered.claim_ids),
-                "evidenceIds": [item.evidence_id for item in rendered.evidence],
-                "activeSubject": subject,
-            },
+        yield from self._publish_verified(
+            conversation_id=conversation_id,
+            turn_id=turn_id,
+            generation=generation,
+            subject=subject,
+            plan=plan,
+            rendered=rendered,
+            cancellation_prefix="retrieval",
         )
