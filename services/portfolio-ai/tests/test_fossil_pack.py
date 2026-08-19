@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -50,6 +51,10 @@ def source_bytes_for(claim: dict) -> bytes:
     ).encode("utf-8")
 
 
+def parse_rfc3339(value: str) -> datetime:
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
 def test_public_runtime_access_is_read_only_and_single_pack() -> None:
     access = public_runtime_access()
     assert access.pack_id == PUBLIC_PACK_ID
@@ -89,7 +94,7 @@ def test_reviewed_claim_preserves_source_and_requires_explicit_lifecycle_transit
     assert supported["payload"]["from_state"] == "proposed"
     assert supported["payload"]["to_state"] == "supported"
     assert supported["caused_by_event_ids"] == [proposed["event_id"]]
-    assert supported["recorded_at"] > proposed["recorded_at"]
+    assert parse_rfc3339(supported["recorded_at"]) > parse_rfc3339(proposed["recorded_at"])
     assert result["resolved_text"] == claim["source"]["anchorText"]
     assert b"SYSTEM OVERRIDE" in ws.artifact_store.read_bytes(result["artifact_id"])
     assert proposed["pack_id"] == PUBLIC_PACK_ID
