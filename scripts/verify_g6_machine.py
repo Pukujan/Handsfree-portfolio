@@ -37,16 +37,39 @@ def validate_optional_human_result() -> tuple[str, dict | None]:
     schema = load(ASSURANCE / "human" / "human-result.schema.json")
     result = load(path)
     Draft202012Validator(schema, format_checker=FormatChecker()).validate(result)
-    qualifies = (
-        result["raterCount"] >= 5
-        and result["pairedRatings"] >= 20
-        and result["candidatePreferred"] > result["baselinePreferred"]
-        and result["medianNaturalnessCandidate"] >= result["medianNaturalnessBaseline"]
-        and result["medianAnnoyanceCandidate"] <= result["medianAnnoyanceBaseline"]
-        and result["criticalIncidents"] == 0
-    )
-    expected = "PASS" if qualifies else "FAIL"
-    if result["decision"] not in {expected, "INCONCLUSIVE"}:
+
+    preference_total = result["candidatePreferred"] + result["baselinePreferred"] + result["ties"]
+    if preference_total != result["pairedRatings"]:
+        raise SystemExit(
+            "human result preference counts must sum to pairedRatings: "
+            f"{preference_total} != {result['pairedRatings']}"
+        )
+
+    expected_candidate = os.environ.get("G6_CANDIDATE_REVISION")
+    if expected_candidate and result["candidateRevision"] != expected_candidate:
+        raise SystemExit(
+            "human result candidateRevision does not match frozen qualification revision: "
+            f"{result['candidateRevision']} != {expected_candidate}"
+        )
+
+    blinding = result["blinding"]
+    blinded = blinding["anonymizedConditionLabels"] and blinding["randomizedPairOrder"]
+    sample_complete = result["raterCount"] >= 5 and result["pairedRatings"] >= 20
+    preference_tied = result["candidatePreferred"] == result["baselinePreferred"]
+
+    if not sample_complete or preference_tied or not blinded:
+        expected = "INCONCLUSIVE"
+    else:
+        qualifies = (
+            result["candidatePreferred"] > result["baselinePreferred"]
+            and result["medianNaturalnessCandidate"] >= result["medianNaturalnessBaseline"]
+            and result["medianAnnoyanceCandidate"] <= result["medianAnnoyanceBaseline"]
+            and result["criticalIncidents"] == 0
+            and result["systematicCriticalFailures"] == 0
+        )
+        expected = "PASS" if qualifies else "FAIL"
+
+    if result["decision"] != expected:
         raise SystemExit(
             f"human result decision {result['decision']} conflicts with protocol-derived {expected}"
         )
@@ -107,12 +130,15 @@ def main() -> None:
                 "candidateRevision",
                 "baselineRevision",
                 "holdoutBundleId",
+                "holdoutManifestSha256",
+                "blinding",
                 "raterCount",
                 "pairedRatings",
                 "candidatePreferred",
                 "baselinePreferred",
                 "ties",
                 "criticalIncidents",
+                "systematicCriticalFailures",
                 "decision",
             )
         }
