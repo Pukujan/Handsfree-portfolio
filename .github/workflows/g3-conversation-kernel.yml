@@ -46,7 +46,7 @@ jobs:
 
       - name: Upload G3 verification receipt
         uses: actions/upload-artifact@v4
-        if: always() && hashFiles('/tmp/g3-conversation-receipt.json') != ''
+        if: success()
         with:
           name: g3-conversation-receipt
           path: /tmp/g3-conversation-receipt.json
