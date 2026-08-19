@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://handsfree-portfolio.dev/contracts/turn-event-v1.schema.json",
+  "title": "TurnEventV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "turnId", "generation", "type", "occurredAt"],
+  "properties": {
+    "contractVersion": {"const": "1.0.0"},
+    "turnId": {"type": "string", "minLength": 1},
+    "generation": {"type": "integer", "minimum": 0},
+    "type": {"enum": ["turn.accepted", "retrieval.started", "evidence.found", "answer.planned", "answer.delta", "answer.grounded", "turn.complete", "turn.cancelled"]},
+    "occurredAt": {"type": "string", "format": "date-time"},
+    "payload": {"type": "object"}
+  }
+}
