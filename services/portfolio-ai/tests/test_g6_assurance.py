@@ -9,12 +9,14 @@ from hypothesis import given, strategies as st
 from handsfree_portfolio.adapters.session_memory import InMemoryConversationSessions, StaleGenerationError
 from handsfree_portfolio.application.grounded_rendering import ClaimBoundTemplateRenderer, DeterministicGroundingVerifier
 from handsfree_portfolio.domain.models import AnswerPlan, EvidenceRef, RenderedAnswer, SupportedClaim
+from scripts.verify_g6_machine import validate_optional_human_result
 
 ROOT = Path(__file__).resolve().parents[3]
 CATALOG = ROOT / "assurance" / "catalog" / "properties-v1.json"
 PERSONAS = ROOT / "assurance" / "personas" / "personas-v1.json"
 SCENARIOS = ROOT / "assurance" / "scenarios" / "recruiter-journeys-v1.json"
 ADVERSARIAL = ROOT / "assurance" / "adversarial" / "adversarial-v1.json"
+HUMAN_RESULT_SCHEMA = ROOT / "assurance" / "human" / "human-result.schema.json"
 
 CRITICAL_MUTATIONS = {
     "MUT-PACK-FILTER-DISABLED",
@@ -38,6 +40,40 @@ def supported_plan(*, proposition: str = "FOSSIL keeps durable evidence canonica
     evidence = EvidenceRef("ev-1", "Pukujan/fossil-core@sha:ARCHITECTURE.md", "FOSSIL architecture")
     claim = SupportedClaim("clm-1", proposition, "supported", (evidence.evidence_id,))
     return AnswerPlan("turn-1", 1, "ANSWER_DIRECT", (claim,), (evidence,))
+
+
+def human_result(**overrides: object) -> dict:
+    payload = {
+        "protocolVersion": "1.0.0",
+        "candidateRevision": "a" * 40,
+        "baselineRevision": "baseline-1",
+        "holdoutBundleId": "holdout-01",
+        "holdoutManifestSha256": "b" * 64,
+        "blinding": {
+            "anonymizedConditionLabels": True,
+            "randomizedPairOrder": True,
+        },
+        "raterCount": 5,
+        "pairedRatings": 20,
+        "candidatePreferred": 12,
+        "baselinePreferred": 7,
+        "ties": 1,
+        "medianNaturalnessCandidate": 6,
+        "medianNaturalnessBaseline": 5,
+        "medianAnnoyanceCandidate": 2,
+        "medianAnnoyanceBaseline": 3,
+        "criticalIncidents": 0,
+        "systematicCriticalFailures": 0,
+        "decision": "PASS",
+    }
+    payload.update(overrides)
+    return payload
+
+
+def write_human_result(tmp_path: Path, payload: dict) -> Path:
+    target = tmp_path / "human-result.json"
+    target.write_text(json.dumps(payload), encoding="utf-8")
+    return target
 
 
 def test_property_catalog_has_unique_named_oracles_and_critical_mutation_coverage() -> None:
@@ -75,6 +111,44 @@ def test_no_private_holdout_answers_are_committed() -> None:
     if private_root.exists():
         committed_like_files = [path for path in private_root.rglob("*") if path.is_file()]
         assert committed_like_files == []
+
+
+def test_human_result_contract_requires_blinding_and_receipt_integrity() -> None:
+    schema = load(HUMAN_RESULT_SCHEMA)
+    required = set(schema["required"])
+    assert {"holdoutManifestSha256", "blinding", "systematicCriticalFailures"} <= required
+    assert schema["properties"]["blinding"]["properties"]["anonymizedConditionLabels"] == {"const": True}
+    assert schema["properties"]["blinding"]["properties"]["randomizedPairOrder"] == {"const": True}
+
+
+def test_human_result_verifier_derives_protocol_decision(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    target = write_human_result(tmp_path, human_result())
+    monkeypatch.setenv("G6_HUMAN_RESULT_PATH", str(target))
+    status, _ = validate_optional_human_result()
+    assert status == "PASS"
+
+    target.write_text(
+        json.dumps(
+            human_result(
+                candidatePreferred=9,
+                baselinePreferred=9,
+                ties=2,
+                decision="INCONCLUSIVE",
+            )
+        ),
+        encoding="utf-8",
+    )
+    status, _ = validate_optional_human_result()
+    assert status == "INCONCLUSIVE"
+
+
+def test_human_result_verifier_rejects_inconsistent_preference_totals(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = write_human_result(tmp_path, human_result(ties=0))
+    monkeypatch.setenv("G6_HUMAN_RESULT_PATH", str(target))
+    with pytest.raises(SystemExit, match="preference counts must sum to pairedRatings"):
+        validate_optional_human_result()
 
 
 @given(st.text(min_size=1, max_size=80).filter(lambda value: value.strip() != ""))
