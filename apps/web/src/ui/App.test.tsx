@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 import { render, screen } from '@testing-library/react';
 import { expect, test } from 'vitest';
 import type { ConversationStreamClient, ServerConversationState, TurnEvent } from '../application/conversation';
@@ -34,16 +36,16 @@ test('renders the portfolio and text fallback without requiring voice', () => {
   );
 
   render(
-    <ThemeProvider initialTheme="bakery-v1">
+    <ThemeProvider theme="bakery-v1">
       <App controller={controller} />
     </ThemeProvider>,
   );
 
-  expect(screen.getByText(/Pujan Bajracharya · AI Systems Engineer/i)).toBeInTheDocument();
-  expect(screen.getByRole('heading', { name: /Talk to my work/i })).toBeInTheDocument();
-  expect(screen.getByRole('textbox', { name: /Ask about Pujan/i })).toBeInTheDocument();
-  expect(screen.getByText(/Voice recognition isn’t available/i)).toBeInTheDocument();
-  expect(screen.getByRole('heading', { name: /The portfolio still works without the assistant/i })).toBeInTheDocument();
-  expect(screen.getByText('FOSSIL')).toBeInTheDocument();
-  expect(screen.getByText('Cortex Ascend')).toBeInTheDocument();
+  expect(screen.getByText(/Pujan Bajracharya · AI Systems Engineer/i)).not.toBeNull();
+  expect(screen.getByRole('heading', { name: /Talk to my work/i })).not.toBeNull();
+  expect(screen.getByRole('textbox', { name: /Ask about Pujan/i })).not.toBeNull();
+  expect(screen.getByText(/Voice recognition isn’t available/i)).not.toBeNull();
+  expect(screen.getByRole('heading', { name: /The portfolio still works without the assistant/i })).not.toBeNull();
+  expect(screen.getByText('FOSSIL')).not.toBeNull();
+  expect(screen.getByText('Cortex Ascend')).not.toBeNull();
 });
