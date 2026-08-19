@@ -4,14 +4,35 @@ import json
 import os
 import shutil
 import tempfile
+import time
 from pathlib import Path
 
 from fossil_core.domain.lifecycle import KnowledgeState
 
 from handsfree_portfolio.adapters.fossil_pack import FossilPackWorkspace, FossilSchemaRoot, PUBLIC_PACK_ID, ingest_supported_claim
+from handsfree_portfolio.adapters.neo4j_projection import Neo4jClaimProjectionAdapter
 
 ROOT = Path(__file__).resolve().parents[1]
 KNOWLEDGE = ROOT / "knowledge" / "portfolio-public"
+
+
+def connect_projection() -> Neo4jClaimProjectionAdapter:
+    uri = os.environ.get("NEO4J_URI")
+    user = os.environ.get("NEO4J_USER")
+    password = os.environ.get("NEO4J_PASSWORD")
+    if not uri or not user or not password:
+        raise SystemExit("NEO4J_URI, NEO4J_USER and NEO4J_PASSWORD are required")
+    last_error: Exception | None = None
+    for _ in range(30):
+        projection = Neo4jClaimProjectionAdapter(uri=uri, user=user, password=password)
+        try:
+            projection.verify_connectivity()
+            return projection
+        except Exception as exc:
+            last_error = exc
+            projection.close()
+            time.sleep(2)
+    raise SystemExit(f"Neo4j did not become ready: {last_error}")
 
 
 def main() -> None:
@@ -40,10 +61,7 @@ def main() -> None:
                 )
             )
 
-        events = sorted(
-            workspace.event_store.iter_events(),
-            key=lambda event: (event["recorded_at"], event["event_id"]),
-        )
+        events = sorted(workspace.event_store.iter_events(), key=lambda event: (event["recorded_at"], event["event_id"]))
         state = KnowledgeState.replay(events)
 
         expected_claims = {claim["claimId"] for claim in claims}
@@ -58,6 +76,31 @@ def main() -> None:
         if any(receipt["resolved_text"] != claim["source"]["anchorText"] for receipt, claim in zip(receipts, claims, strict=True)):
             raise SystemExit("G1 live verification citation did not resolve to exact anchor text")
 
+        projection = connect_projection()
+        try:
+            first_receipts = projection.rebuild(events_root=workspace.event_store.root)
+            if any(receipt.status != "applied" for receipt in first_receipts):
+                raise SystemExit(f"first Neo4j rebuild failed: {first_receipts}")
+            first_snapshot = projection.semantic_snapshot()
+            first_digest = projection.semantic_digest()
+            if {item["stable_id"] for item in first_snapshot} != expected_claims:
+                raise SystemExit("Neo4j projection claim identity differs from FOSSIL durable identities")
+            if any(item["state"] != "supported" for item in first_snapshot):
+                raise SystemExit("Neo4j projection did not reconstruct supported claim state")
+
+            projection.clear()
+            if projection.semantic_snapshot() != []:
+                raise SystemExit("destructive Neo4j reset did not clear projection")
+
+            second_receipts = projection.rebuild(events_root=workspace.event_store.root)
+            if any(receipt.status != "applied" for receipt in second_receipts):
+                raise SystemExit(f"second Neo4j rebuild failed: {second_receipts}")
+            second_digest = projection.semantic_digest()
+            if second_digest != first_digest:
+                raise SystemExit("destructive Neo4j rebuild changed semantic digest")
+        finally:
+            projection.close()
+
         print(
             json.dumps(
                 {
@@ -69,6 +112,8 @@ def main() -> None:
                     "snapshot_count": len({receipt["snapshot_id"] for receipt in receipts}),
                     "all_claims_supported_after_replay": True,
                     "all_citations_resolved_exact_bytes": True,
+                    "neo4j_destructive_rebuild_pass": True,
+                    "neo4j_semantic_digest": first_digest,
                 },
                 sort_keys=True,
             )
