@@ -130,6 +130,7 @@ def test_receipt_revision_prefers_checked_out_candidate(monkeypatch: pytest.Monk
 def test_human_result_verifier_derives_protocol_decision(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     target = write_human_result(tmp_path, human_result())
     monkeypatch.setenv("G6_HUMAN_RESULT_PATH", str(target))
+    monkeypatch.setenv("G6_CANDIDATE_REVISION", "a" * 40)
     status, _ = validate_optional_human_result()
     assert status == "PASS"
 
