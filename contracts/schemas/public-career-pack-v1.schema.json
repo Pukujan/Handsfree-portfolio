@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://handsfree-portfolio.dev/contracts/public-career-pack-v1.schema.json",
+  "title": "PublicCareerPackV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "packId", "revision", "visibility", "readOnlyRuntime", "entityTypes", "relationTypes"],
+  "properties": {
+    "contractVersion": {"const": "1.0.0"},
+    "packId": {"const": "portfolio-public"},
+    "revision": {"type": "string", "minLength": 1},
+    "visibility": {"const": "public"},
+    "readOnlyRuntime": {"const": true},
+    "entityTypes": {
+      "type": "array",
+      "items": {"enum": ["Person", "Project", "Role", "Company", "Skill", "Technology", "ResearchTopic", "ArchitectureDecision", "Outcome", "Publication", "Education", "Repository", "CaseStudy", "Evidence", "Claim", "SourceSnapshot"]},
+      "uniqueItems": true
+    },
+    "relationTypes": {
+      "type": "array",
+      "items": {"enum": ["BUILT", "IMPLEMENTED", "TESTED", "RESEARCHED", "USED", "DEPLOYED", "SHIPPED", "WORKED_AT", "AUTHORED", "EVIDENCED_BY", "SUPERSEDES", "RELATED_TO", "DEPENDS_ON", "DEMONSTRATES"]},
+      "uniqueItems": true
+    }
+  }
+}
