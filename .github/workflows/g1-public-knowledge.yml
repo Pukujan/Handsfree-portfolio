@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       neo4j:
-        image: neo4j:2026.07.0
+        image: neo4j:2026.06.0
         env:
           NEO4J_AUTH: neo4j/portfolio-test-password
         ports:
