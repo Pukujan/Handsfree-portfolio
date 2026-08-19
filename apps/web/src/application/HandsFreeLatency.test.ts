@@ -46,9 +46,7 @@ class NoopOutput implements SpeechOutputPort {
 }
 
 async function flush() {
-  await Promise.resolve();
-  await Promise.resolve();
-  await Promise.resolve();
+  for (let index = 0; index < 12; index += 1) await Promise.resolve();
 }
 
 afterEach(() => vi.useRealTimers());
