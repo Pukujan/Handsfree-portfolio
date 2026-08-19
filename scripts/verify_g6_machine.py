@@ -27,6 +27,10 @@ def load(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def checked_out_revision() -> str | None:
+    return os.environ.get("G6_CHECKED_OUT_REVISION") or os.environ.get("GITHUB_SHA")
+
+
 def validate_optional_human_result() -> tuple[str, dict | None]:
     value = os.environ.get("G6_HUMAN_RESULT_PATH")
     if not value:
@@ -121,7 +125,7 @@ def main() -> None:
         "hiddenAnswersCommitted": False,
         "modelJudgeAuthority": properties_doc["oraclePolicy"]["modelJudges"],
         "naturalnessFinalAuthority": properties_doc["oraclePolicy"]["naturalnessFinalAuthority"],
-        "workflowSha": os.environ.get("GITHUB_SHA"),
+        "workflowSha": checked_out_revision(),
     }
     if human_result is not None:
         receipt["humanResultSummary"] = {
