@@ -1,0 +1,32 @@
+{
+  "contractVersion": "1.0.1",
+  "policyId": "slice1-retrieval-v1",
+  "topK": 2,
+  "exactAliases": {
+    "what is fossil": ["clm_portfolio_fossil_durable_truth_0001"],
+    "why does fossil matter": ["clm_portfolio_fossil_durable_truth_0001"],
+    "why not just use neo4j": ["clm_portfolio_fossil_projection_0001", "clm_portfolio_fossil_durable_truth_0001"],
+    "how does pack isolation work": ["clm_portfolio_fossil_pack_boundary_0001", "clm_portfolio_fossil_corpus_scope_0001"],
+    "does fossil let agents write arbitrary cypher": ["clm_portfolio_fossil_corpus_scope_0001"]
+  },
+  "concepts": {
+    "clm_portfolio_fossil_durable_truth_0001": [
+      "durable", "authority", "source of truth", "canonical", "truth", "evidence", "history", "survives", "knowledge authority"
+    ],
+    "clm_portfolio_fossil_projection_0001": [
+      "neo4j", "graphiti", "graph", "projection", "replaceable", "rebuild", "deleted", "destroy graph", "rebuildable"
+    ],
+    "clm_portfolio_fossil_pack_boundary_0001": [
+      "pack", "pack isolation", "mounted packs", "physical placement", "read access", "pack scope", "pack identity"
+    ],
+    "clm_portfolio_fossil_corpus_scope_0001": [
+      "corpusservice", "arbitrary cypher", "arbitrary graph mutation", "mutation", "query scope", "read everything", "mounted pack", "agent access"
+    ]
+  },
+  "graphPolicy": {
+    "defaultHotPath": false,
+    "evidenceDrilldownTriggers": [
+      "evidence", "prove", "proves", "proof", "show source", "show sources", "what source", "which source", "why are you saying"
+    ]
+  }
+}

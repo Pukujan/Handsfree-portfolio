@@ -3,12 +3,13 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from fossil_core.ports import ProjectionReceipt
 from neo4j import GraphDatabase
 
 from handsfree_portfolio.adapters.fossil_pack import PUBLIC_PACK_ID
+from handsfree_portfolio.domain.retrieval import GraphEvidencePath
 
 
 class Neo4jClaimProjectionAdapter:
@@ -125,7 +126,7 @@ class Neo4jClaimProjectionAdapter:
                     return ProjectionReceipt(self.name, self.version, event_id, "applied")
 
                 return ProjectionReceipt(self.name, self.version, event_id, "skipped", f"unsupported event type {event_type}")
-        except Exception as exc:  # adapter boundary converts provider errors into receipts
+        except Exception as exc:
             return ProjectionReceipt(self.name, self.version, event_id, "failed", f"{type(exc).__name__}: {exc}")
 
     def clear(self) -> None:
@@ -148,6 +149,46 @@ class Neo4jClaimProjectionAdapter:
                 projection_id=self.projection_id,
             ).single()
         return {"projection": self.name, "version": self.version, "status": "ok", "node_count": int(record["count"] if record else 0)}
+
+    def evidence_paths(self, claim_ids: Iterable[str]) -> tuple[GraphEvidencePath, ...]:
+        requested = tuple(dict.fromkeys(str(claim_id) for claim_id in claim_ids))
+        if not requested:
+            return ()
+        with self.driver.session() as session:
+            rows = session.run(
+                """
+                UNWIND $claim_ids AS claim_id
+                MATCH (c:PortfolioClaim {
+                    projection_id: $projection_id,
+                    stable_id: claim_id,
+                    pack_id: $pack_id,
+                    state: 'supported'
+                })
+                OPTIONAL MATCH (c)-[:EVIDENCED_BY]->(e:EvidenceProjection {
+                    projection_id: $projection_id,
+                    pack_id: $pack_id
+                })
+                OPTIONAL MATCH (c)-[:SOURCED_FROM]->(s:SourceSnapshotProjection {
+                    projection_id: $projection_id,
+                    pack_id: $pack_id
+                })
+                RETURN c.stable_id AS claim_id,
+                       collect(DISTINCT e.stable_id) AS evidence_ids,
+                       collect(DISTINCT s.stable_id) AS snapshot_ids
+                ORDER BY claim_id
+                """,
+                claim_ids=list(requested),
+                projection_id=self.projection_id,
+                pack_id=PUBLIC_PACK_ID,
+            )
+            return tuple(
+                GraphEvidencePath(
+                    claim_id=str(row["claim_id"]),
+                    evidence_ids=tuple(sorted(str(value) for value in row["evidence_ids"] if value is not None)),
+                    snapshot_ids=tuple(sorted(str(value) for value in row["snapshot_ids"] if value is not None)),
+                )
+                for row in rows
+            )
 
     def semantic_snapshot(self) -> list[dict[str, Any]]:
         with self.driver.session() as session:
