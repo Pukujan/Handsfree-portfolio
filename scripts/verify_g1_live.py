@@ -14,6 +14,7 @@ from handsfree_portfolio.adapters.neo4j_projection import Neo4jClaimProjectionAd
 
 ROOT = Path(__file__).resolve().parents[1]
 KNOWLEDGE = ROOT / "knowledge" / "portfolio-public"
+OBSERVED_AT = "2026-08-19T20:10:00Z"
 
 
 def connect_projection() -> Neo4jClaimProjectionAdapter:
@@ -50,16 +51,15 @@ def main() -> None:
         shutil.copy(KNOWLEDGE / "source-policy.json", pack_root / "source-policy.json")
         workspace = FossilPackWorkspace(pack_root, FossilSchemaRoot(Path(schema_root)))
 
-        receipts = []
-        for index, claim in enumerate(claims):
-            receipts.append(
-                ingest_supported_claim(
-                    workspace,
-                    policy_path=pack_root / "source-policy.json",
-                    claim=claim,
-                    observed_at=f"2026-08-19T20:10:{index:02d}Z",
-                )
+        receipts = [
+            ingest_supported_claim(
+                workspace,
+                policy_path=pack_root / "source-policy.json",
+                claim=claim,
+                observed_at=OBSERVED_AT,
             )
+            for claim in claims
+        ]
 
         events = sorted(workspace.event_store.iter_events(), key=lambda event: (event["recorded_at"], event["event_id"]))
         state = KnowledgeState.replay(events)
