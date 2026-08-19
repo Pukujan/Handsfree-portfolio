@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from handsfree_portfolio.adapters.clock import SystemClock
@@ -120,7 +121,7 @@ def main() -> None:
     if completed != total_turns:
         raise SystemExit(f"simulator expected every deterministic turn to complete: {completed}/{total_turns}")
 
-    print(json.dumps({
+    receipt = {
         "status": "PASS",
         "authority": "workload_only",
         "persona_count": len(personas),
@@ -130,7 +131,13 @@ def main() -> None:
         "unsafe_outcomes": 0,
         "per_persona_turns": per_persona,
         "note": "Synthetic personas generate workload only; this receipt is not a naturalness judgment."
-    }, sort_keys=True))
+    }
+    target_value = os.environ.get("G6_SIMULATOR_RECEIPT_PATH")
+    if target_value:
+        target = Path(target_value)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(json.dumps(receipt, sort_keys=True))
 
 
 if __name__ == "__main__":
