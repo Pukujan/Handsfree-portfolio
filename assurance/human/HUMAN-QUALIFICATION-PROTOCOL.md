@@ -14,6 +14,8 @@ The evaluation owner must freeze both revisions before collecting ratings. Any b
 
 Each rater sees anonymized condition labels and randomized pair order. They must not be told which condition is the candidate. The evaluator should avoid recruiting people who implemented the compared behavior for the primary preference panel.
 
+The aggregate qualification receipt must attest that condition labels were anonymized and pair order was randomized. Missing or false blinding metadata makes the result `INCONCLUSIVE`.
+
 ## Required tasks
 
 Use unseen recruiter-style trajectories from the sealed naturalness/conversation holdout. Include at least one terse first-contact question, one pronoun/reference follow-up, one challenge/correction, one evidence request, one interruption or impatient turn, and one unsupported/private request across the panel.
@@ -28,6 +30,8 @@ Do not ask raters to score factual correctness when the answer key is hidden fro
 
 Qualification requires at least 5 independent human raters and at least 20 blinded paired trajectory ratings in aggregate. More is preferred when disagreement is high.
 
+The aggregate counts for candidate preference, baseline preference and ties must sum exactly to the number of paired ratings.
+
 ## G6 acceptance rule
 
 G6 human qualification passes only if all of the following are true:
@@ -39,7 +43,7 @@ G6 human qualification passes only if all of the following are true:
 5. the candidate median annoyance/assistantese rating is not worse than baseline;
 6. no evaluator flags a repeated systematic failure that violates a critical property.
 
-A result with insufficient sample size, a tie on pairwise preference, or missing blinding metadata is `INCONCLUSIVE`, not PASS.
+A result with insufficient sample size, a tie on pairwise preference, or missing blinding metadata is `INCONCLUSIVE`, not PASS. A sufficiently sampled non-tied result that violates any acceptance criterion is `FAIL`.
 
 ## Receipt format
 
@@ -48,9 +52,14 @@ The human-evaluation owner records a machine-readable aggregate receipt containi
 ```json
 {
   "protocolVersion": "1.0.0",
-  "candidateRevision": "<git sha>",
+  "candidateRevision": "<40-character git sha>",
   "baselineRevision": "<git sha or immutable artifact id>",
   "holdoutBundleId": "<sealed id>",
+  "holdoutManifestSha256": "<sha256 of sealed manifest.json>",
+  "blinding": {
+    "anonymizedConditionLabels": true,
+    "randomizedPairOrder": true
+  },
   "raterCount": 0,
   "pairedRatings": 0,
   "candidatePreferred": 0,
@@ -61,8 +70,11 @@ The human-evaluation owner records a machine-readable aggregate receipt containi
   "medianAnnoyanceCandidate": 0,
   "medianAnnoyanceBaseline": 0,
   "criticalIncidents": 0,
+  "systematicCriticalFailures": 0,
   "decision": "PASS|FAIL|INCONCLUSIVE"
 }
 ```
+
+The qualification runner derives the expected decision from these fields and rejects a contradictory declared decision. An isolated qualification environment may also pin `G6_CANDIDATE_REVISION`; when supplied, the receipt candidate revision must match it exactly.
 
 Only aggregate results and sealed bundle digests belong in the public repository. Raw rater identity/contact data and hidden expected answers remain outside the public repo.
