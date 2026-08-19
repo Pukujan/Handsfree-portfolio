@@ -1,0 +1,14 @@
+{
+  "name": "handsfree-portfolio",
+  "private": true,
+  "packageManager": "pnpm@10",
+  "scripts": {
+    "dev:web": "pnpm --filter @handsfree/web dev",
+    "build:web": "pnpm --filter @handsfree/web build",
+    "test:web": "pnpm --filter @handsfree/web test",
+    "check:architecture": "python scripts/check_architecture.py",
+    "check:contracts": "python scripts/validate_contracts.py",
+    "test:api": "python -m pytest services/portfolio-ai/tests",
+    "check:g0": "pnpm build:web && pnpm test:web && python scripts/check_architecture.py && python scripts/validate_contracts.py && python -m pytest services/portfolio-ai/tests"
+  }
+}
