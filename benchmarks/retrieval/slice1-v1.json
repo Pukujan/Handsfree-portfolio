@@ -1,5 +1,5 @@
 {
-  "benchmarkVersion": "1.0.1",
+  "benchmarkVersion": "1.0.2",
   "policyId": "slice1-retrieval-v1",
   "cases": [
     {"id":"q01","class":"definition","question":"What is FOSSIL?","expectedClaimIds":["clm_portfolio_fossil_durable_truth_0001"],"expectAbstain":false},
@@ -13,6 +13,7 @@
     {"id":"q09","class":"provenance","question":"What public evidence says Graphiti is replaceable?","expectedClaimIds":["clm_portfolio_fossil_projection_0001"],"expectAbstain":false,"expectGraphDrilldown":true},
     {"id":"q10","class":"provenance","question":"What proves the durable system is not Neo4j?","expectedClaimIds":["clm_portfolio_fossil_durable_truth_0001"],"expectAbstain":false,"expectGraphDrilldown":true},
     {"id":"q11","class":"unsupported","question":"What is Pujan's favorite food?","expectedClaimIds":[],"expectAbstain":true},
-    {"id":"q12","class":"unsupported","question":"What will the weather be tomorrow?","expectedClaimIds":[],"expectAbstain":true}
+    {"id":"q12","class":"unsupported","question":"What will the weather be tomorrow?","expectedClaimIds":[],"expectAbstain":true},
+    {"id":"q13","class":"slice1-canonical","question":"What is FOSSIL and why does it matter?","expectedClaimIds":["clm_portfolio_fossil_durable_truth_0001"],"expectAbstain":false}
   ]
 }

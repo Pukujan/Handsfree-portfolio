@@ -2,8 +2,11 @@ export type ConversationState =
   | 'idle'
   | 'listening'
   | 'retrieving'
+  | 'rendering'
   | 'speaking'
   | 'interrupted'
+  | 'complete'
+  | 'cancelled'
   | 'error'
   | 'fallback';
 

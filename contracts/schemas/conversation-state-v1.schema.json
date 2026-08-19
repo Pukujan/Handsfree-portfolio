@@ -8,7 +8,7 @@
   "properties": {
     "contractVersion": {"const": "1.0.0"},
     "activeGeneration": {"type": "integer", "minimum": 0},
-    "state": {"enum": ["idle", "listening", "retrieving", "speaking", "interrupted", "error", "fallback"]},
+    "state": {"enum": ["idle", "listening", "retrieving", "rendering", "speaking", "interrupted", "complete", "cancelled", "error", "fallback"]},
     "activeSubject": {"type": ["string", "null"]},
     "referents": {"type": "object", "additionalProperties": {"type": "string"}}
   }
