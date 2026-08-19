@@ -14,6 +14,7 @@ jobs:
       FOSSIL_SHA: b5fd57725c910b149910371964adb35d9280016e
       FOSSIL_SCHEMA_ROOT: /tmp/fossil-core/schemas
       G5_RECEIPT_PATH: /tmp/g5-cache-receipt.json
+      G5_REDACTION_RECEIPT_PATH: /tmp/g5-redaction-receipt.json
     steps:
       - uses: actions/checkout@v4
 
@@ -38,16 +39,19 @@ jobs:
       - name: Shared contract validation
         run: python scripts/validate_contracts.py
 
-      - name: G3 regression plus cache authority tests
+      - name: G3 regression plus cache authority and mutation-target tests
         run: python -m pytest services/portfolio-ai/tests/test_conversation_kernel.py services/portfolio-ai/tests/test_response_cache.py services/portfolio-ai/tests/test_api.py
 
       - name: Live exact-source FOSSIL cache verification
         run: python scripts/verify_g5_cache.py
 
-      - name: Upload G5 verification receipt
+      - name: Live FOSSIL redaction invalidation verification
+        run: python scripts/verify_g5_redaction.py
+
+      - name: Upload G5 verification receipts
         uses: actions/upload-artifact@v4
         with:
-          name: g5-response-cache-receipt
-          path: /tmp/g5-cache-receipt.json
+          name: g5-response-cache-receipts
+          path: /tmp/g5-*-receipt.json
           if-no-files-found: error
           retention-days: 30
