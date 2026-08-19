@@ -9,7 +9,7 @@ from hypothesis import given, strategies as st
 from handsfree_portfolio.adapters.session_memory import InMemoryConversationSessions, StaleGenerationError
 from handsfree_portfolio.application.grounded_rendering import ClaimBoundTemplateRenderer, DeterministicGroundingVerifier
 from handsfree_portfolio.domain.models import AnswerPlan, EvidenceRef, RenderedAnswer, SupportedClaim
-from scripts.verify_g6_machine import validate_optional_human_result
+from scripts.verify_g6_machine import checked_out_revision, validate_optional_human_result
 
 ROOT = Path(__file__).resolve().parents[3]
 CATALOG = ROOT / "assurance" / "catalog" / "properties-v1.json"
@@ -119,6 +119,12 @@ def test_human_result_contract_requires_blinding_and_receipt_integrity() -> None
     assert {"holdoutManifestSha256", "blinding", "systematicCriticalFailures"} <= required
     assert schema["properties"]["blinding"]["properties"]["anonymizedConditionLabels"] == {"const": True}
     assert schema["properties"]["blinding"]["properties"]["randomizedPairOrder"] == {"const": True}
+
+
+def test_receipt_revision_prefers_checked_out_candidate(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GITHUB_SHA", "merge-sha")
+    monkeypatch.setenv("G6_CHECKED_OUT_REVISION", "candidate-sha")
+    assert checked_out_revision() == "candidate-sha"
 
 
 def test_human_result_verifier_derives_protocol_decision(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
