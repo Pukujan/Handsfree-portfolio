@@ -73,6 +73,17 @@ class ConversationKernel:
         if self._owns(conversation_id, generation):
             self.sessions.update(conversation_id, generation, status="error")
 
+    def _evidence_event(self, turn_id: str, generation: int, plan: AnswerPlan) -> TurnEvent:
+        return self._event(
+            turn_id,
+            generation,
+            "evidence.found",
+            {
+                "claimIds": [claim.claim_id for claim in plan.claims],
+                "evidenceIds": [item.evidence_id for item in plan.evidence],
+            },
+        )
+
     def _publish_verified(
         self,
         *,
@@ -80,30 +91,9 @@ class ConversationKernel:
         turn_id: str,
         generation: int,
         subject: str | None,
-        plan: AnswerPlan,
         rendered: RenderedAnswer,
         cancellation_prefix: str,
     ) -> Iterator[TurnEvent]:
-        if plan.evidence:
-            yield self._event(
-                turn_id,
-                generation,
-                "evidence.found",
-                {
-                    "claimIds": [claim.claim_id for claim in plan.claims],
-                    "evidenceIds": [item.evidence_id for item in plan.evidence],
-                },
-            )
-            if not self._owns(conversation_id, generation):
-                yield self._cancelled(turn_id, generation, f"superseded_{cancellation_prefix}_after_evidence")
-                return
-
-        self.sessions.update(conversation_id, generation, status="rendering")
-        yield self._event(turn_id, generation, "answer.planned", answer_plan_contract(plan))
-        if not self._owns(conversation_id, generation):
-            yield self._cancelled(turn_id, generation, f"superseded_{cancellation_prefix}_after_plan")
-            return
-
         yield self._event(
             turn_id,
             generation,
@@ -187,12 +177,21 @@ class ConversationKernel:
                 yield self._cancelled(turn_id, generation, "superseded_during_cache_validation")
                 return
             if cached is not None:
+                if cached.plan.evidence:
+                    yield self._evidence_event(turn_id, generation, cached.plan)
+                    if not self._owns(conversation_id, generation):
+                        yield self._cancelled(turn_id, generation, "superseded_cache_after_evidence")
+                        return
+                yield self._event(turn_id, generation, "answer.planned", answer_plan_contract(cached.plan))
+                if not self._owns(conversation_id, generation):
+                    yield self._cancelled(turn_id, generation, "superseded_cache_after_plan")
+                    return
+                self.sessions.update(conversation_id, generation, status="rendering")
                 yield from self._publish_verified(
                     conversation_id=conversation_id,
                     turn_id=turn_id,
                     generation=generation,
                     subject=subject,
-                    plan=cached.plan,
                     rendered=cached.rendered,
                     cancellation_prefix="cache",
                 )
@@ -223,6 +222,17 @@ class ConversationKernel:
         except Exception as exc:
             self._mark_error_if_owner(conversation_id, generation)
             yield self._cancelled(turn_id, generation, f"planning_failed:{type(exc).__name__}")
+            return
+
+        if plan.evidence:
+            yield self._evidence_event(turn_id, generation, plan)
+            if not self._owns(conversation_id, generation):
+                yield self._cancelled(turn_id, generation, "superseded_after_evidence")
+                return
+
+        yield self._event(turn_id, generation, "answer.planned", answer_plan_contract(plan))
+        if not self._owns(conversation_id, generation):
+            yield self._cancelled(turn_id, generation, "superseded_after_plan")
             return
 
         self.sessions.update(conversation_id, generation, status="rendering")
@@ -260,7 +270,6 @@ class ConversationKernel:
             turn_id=turn_id,
             generation=generation,
             subject=subject,
-            plan=plan,
             rendered=rendered,
             cancellation_prefix="retrieval",
         )
