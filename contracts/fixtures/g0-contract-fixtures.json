@@ -28,7 +28,8 @@
   },
   "public-career-pack-v1.schema.json": {
     "contractVersion": "1.0.0",
-    "packId": "portfolio-public",
+    "packId": "pack_c70aedc3a5bc7600399f22808f4a8de0",
+    "alias": "portfolio-public",
     "revision": "fixture-revision-1",
     "visibility": "public",
     "readOnlyRuntime": true,
