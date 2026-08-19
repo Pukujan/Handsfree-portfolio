@@ -4,6 +4,7 @@ import json
 import threading
 from pathlib import Path
 
+from hypothesis import given, strategies as st
 from jsonschema import Draft202012Validator, FormatChecker
 
 from handsfree_portfolio.adapters.clock import SystemClock
@@ -213,3 +214,20 @@ def test_new_generation_fences_old_turn_after_blocked_retrieval() -> None:
     assert old_tail[-1].payload["reason"] == "superseded_during_retrieval"
     assert sessions.get("race").active_generation == 2
     assert sessions.get("race").status == "complete"
+
+
+@given(turn_count=st.integers(min_value=1, max_value=30))
+def test_generations_are_monotonic_and_only_latest_state_survives(turn_count: int) -> None:
+    sessions = InMemoryConversationSessions()
+    kernel = make_kernel(sessions=sessions)
+    seen: list[int] = []
+    for _ in range(turn_count):
+        events = list(kernel.stream_turn(conversation_id="property", question="What is FOSSIL?"))
+        assert events[-1].type == "turn.complete"
+        assert sum(event.type == "turn.complete" for event in events) == 1
+        assert sum(event.type == "answer.delta" for event in events) == 1
+        assert event_of(events, "answer.delta").generation == events[-1].generation
+        seen.append(events[-1].generation)
+    assert seen == list(range(1, turn_count + 1))
+    assert sessions.get("property").active_generation == turn_count
+    assert sessions.get("property").status == "complete"
