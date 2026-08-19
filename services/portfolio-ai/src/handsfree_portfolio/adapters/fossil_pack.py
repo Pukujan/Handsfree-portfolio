@@ -85,11 +85,19 @@ def operator_access(manifest: Mapping[str, Any]) -> PackAccess:
     return access
 
 
-def _plus_microsecond(value: str) -> str:
+def _parse_rfc3339(value: str) -> datetime:
     parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
-    return (parsed + timedelta(microseconds=1)).astimezone(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
+    return parsed.astimezone(timezone.utc)
+
+
+def _canonical_rfc3339(value: str) -> str:
+    return _parse_rfc3339(value).isoformat(timespec="microseconds").replace("+00:00", "Z")
+
+
+def _plus_microsecond(value: str) -> str:
+    return (_parse_rfc3339(value) + timedelta(microseconds=1)).isoformat(timespec="microseconds").replace("+00:00", "Z")
 
 
 def _base_event(*, event_type: str, claim_id: str, occurred_at: str, recorded_at: str, correlation_id: str) -> dict[str, Any]:
@@ -155,8 +163,13 @@ def ingest_supported_claim(
 
     claim_id = str(claim["claimId"])
     correlation_id = f"slice1:{claim_id}"
+    canonical_recorded_at = _canonical_rfc3339(observed_at)
     proposed = _base_event(
-        event_type="claim.proposed", claim_id=claim_id, occurred_at=observed_at, recorded_at=observed_at, correlation_id=correlation_id
+        event_type="claim.proposed",
+        claim_id=claim_id,
+        occurred_at=observed_at,
+        recorded_at=canonical_recorded_at,
+        correlation_id=correlation_id,
     )
     proposed.update(
         {
