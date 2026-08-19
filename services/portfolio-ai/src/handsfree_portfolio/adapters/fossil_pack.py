@@ -207,5 +207,5 @@ def ingest_supported_claim(
         "snapshot_id": snapshot["snapshot_id"],
         "artifact_id": snapshot["artifact_id"],
         "citation": citation,
-        "resolved_passage": resolved["passage"],
+        "resolved_text": resolved["text"],
     }
