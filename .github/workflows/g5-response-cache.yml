@@ -40,7 +40,7 @@ jobs:
         run: python scripts/validate_contracts.py
 
       - name: G3 regression plus cache authority and mutation-target tests
-        run: python -m pytest services/portfolio-ai/tests/test_conversation_kernel.py services/portfolio-ai/tests/test_response_cache.py services/portfolio-ai/tests/test_api.py
+        run: python -m pytest services/portfolio-ai/tests/test_conversation_kernel.py services/portfolio-ai/tests/test_response_cache.py services/portfolio-ai/tests/test_cache_authority.py services/portfolio-ai/tests/test_api.py
 
       - name: Live exact-source FOSSIL cache verification
         run: python scripts/verify_g5_cache.py
