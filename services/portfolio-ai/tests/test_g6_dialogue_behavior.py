@@ -16,6 +16,7 @@ CONVERSATION = ROOT / "assurance" / "conversation"
 PATTERNS = CONVERSATION / "patterns-v1.json"
 BENCHMARK = CONVERSATION / "development-situations-v1.json"
 MANIFEST = CONVERSATION / "corpus-manifest-v1.json"
+NATURALNESS_POLICY = ROOT / "assurance" / "catalog" / "naturalness-policy-v2.json"
 
 
 def load(path: Path) -> dict:
@@ -52,8 +53,20 @@ def test_deterministic_matcher_hits_every_public_development_case() -> None:
 
 def test_style_accommodation_prefers_terse_strategy_for_terse_direct_question() -> None:
     matcher = DeterministicPatternMatcher(load_pattern_catalog(PATTERNS))
-    terse = InteractionSituation("terse", "direct_question", "none", "terse", "normal")
-    neutral = InteractionSituation("neutral", "direct_question", "none", "neutral", "normal")
+    terse = InteractionSituation(
+        situation_id="terse",
+        user_act="direct_question",
+        context_dependency="none",
+        user_register="terse",
+        urgency="normal",
+    )
+    neutral = InteractionSituation(
+        situation_id="neutral",
+        user_act="direct_question",
+        context_dependency="none",
+        user_register="neutral",
+        urgency="normal",
+    )
     assert matcher.match(terse).pattern.pattern_id == "PAT-DIRECT-TERSE"
     assert matcher.match(terse).pattern.length_band == "short"
     assert matcher.match(neutral).pattern.pattern_id == "PAT-DIRECT-NEUTRAL"
@@ -61,14 +74,32 @@ def test_style_accommodation_prefers_terse_strategy_for_terse_direct_question() 
 
 def test_contextual_followup_resolves_referent_before_answer() -> None:
     matcher = DeterministicPatternMatcher(load_pattern_catalog(PATTERNS))
-    situation = InteractionSituation("followup", "followup_question", "high", "terse", "normal", "answer")
-    assert matcher.match(situation).pattern.response_moves[:2] == ("resolve_referent", "answer")
+    situation = InteractionSituation(
+        situation_id="followup",
+        user_act="followup_question",
+        context_dependency="high",
+        user_register="terse",
+        previous_act="answer",
+    )
+    moves = matcher.match(situation).pattern.response_moves
+    assert moves[:2] == ("resolve_referent", "answer")
 
 
 def test_repair_and_boundary_are_explicit_conversational_moves() -> None:
     matcher = DeterministicPatternMatcher(load_pattern_catalog(PATTERNS))
-    correction = InteractionSituation("correction", "correction", "high", "terse", "normal", "answer")
-    private = InteractionSituation("private", "private_request", "low", "neutral")
+    correction = InteractionSituation(
+        situation_id="correction",
+        user_act="correction",
+        context_dependency="high",
+        user_register="terse",
+        previous_act="answer",
+    )
+    private = InteractionSituation(
+        situation_id="private",
+        user_act="private_request",
+        context_dependency="low",
+        user_register="neutral",
+    )
     assert matcher.match(correction).pattern.response_moves[0] == "repair"
     assert matcher.match(private).pattern.response_moves[0] == "boundary"
 
@@ -80,3 +111,13 @@ def test_research_manifest_never_grants_factual_authority_or_raw_redistribution(
     assert manifest["policy"]["modelJudgeAuthority"] == "auxiliary_only"
     assert len(manifest["sources"]) >= 5
     assert all(source["license"]["rawRedistributionAllowed"] is False for source in manifest["sources"])
+
+
+def test_naturalness_policy_supersedes_human_panel_as_release_authority() -> None:
+    policy = load(NATURALNESS_POLICY)
+    oracle = policy["oraclePolicy"]
+    assert oracle["naturalnessFinalAuthority"] == "corpus_derived_deterministic_oracles"
+    assert oracle["modelJudges"] == "auxiliary_only"
+    assert oracle["styleFactualAuthority"] is False
+    assert len(policy["properties"]) >= 6
+    assert all(item["oracle"] and item["testPaths"] for item in policy["properties"])

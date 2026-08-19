@@ -1,80 +1,13 @@
-# G6 blinded human qualification protocol
+# Legacy G6 human-qualification protocol — superseded
 
-## Purpose
+This file is retained only for reproducibility of historical pre-corpus G6 receipts and tests.
 
-Human raters are the final authority for conversational naturalness and preference. Synthetic personas and model judges may generate or pre-screen workload, but they cannot close G6.
+The earlier G6 specification required a newly recruited blinded human panel. That requirement was corrected **before any human ratings were collected** because the product's intended naturalness qualification is research/corpus-backed, not a new usability study.
 
-## Candidate and baseline
+The active G6 naturalness contract is:
 
-The candidate is the current grounded conversational portfolio using the exact release candidate revision under evaluation. The baseline is the same public knowledge/evidence set presented through a deliberately simpler text interaction that does not receive the candidate's dialogue-context or latency-behavior enhancements. Both conditions must expose the same factual authority and must not differ in what claims are allowed.
+- `assurance/conversation/CORPUS-NATURALNESS-PROTOCOL.md`
+- `assurance/conversation/corpus-manifest-v1.json`
+- `assurance/catalog/naturalness-policy-v2.json`
 
-The evaluation owner must freeze both revisions before collecting ratings. Any behavior-changing commit after collection invalidates the result for release qualification.
-
-## Blinding
-
-Each rater sees anonymized condition labels and randomized pair order. They must not be told which condition is the candidate. The evaluator should avoid recruiting people who implemented the compared behavior for the primary preference panel.
-
-The aggregate qualification receipt must attest that condition labels were anonymized and pair order was randomized. Missing or false blinding metadata makes the result `INCONCLUSIVE`.
-
-## Required tasks
-
-Use unseen recruiter-style trajectories from the sealed naturalness/conversation holdout. Include at least one terse first-contact question, one pronoun/reference follow-up, one challenge/correction, one evidence request, one interruption or impatient turn, and one unsupported/private request across the panel.
-
-## Rating dimensions
-
-For every paired trajectory, collect 1–7 ratings for naturalness, responsiveness to the actual question, concision, context carry, trustworthiness, and annoyance/assistantese. Also collect a forced pairwise preference: A, B, or tie, plus an optional free-text reason.
-
-Do not ask raters to score factual correctness when the answer key is hidden from them; deterministic oracles evaluate factual/authority correctness separately.
-
-## Minimum panel
-
-Qualification requires at least 5 independent human raters and at least 20 blinded paired trajectory ratings in aggregate. More is preferred when disagreement is high.
-
-The aggregate counts for candidate preference, baseline preference and ties must sum exactly to the number of paired ratings.
-
-## G6 acceptance rule
-
-G6 human qualification passes only if all of the following are true:
-
-1. deterministic machine assurance for the evaluated revision is PASS;
-2. no critical privacy/grounding/authority incident occurs in the human sessions;
-3. candidate pairwise preference exceeds baseline preference, excluding ties;
-4. the candidate median naturalness rating is not lower than the baseline median;
-5. the candidate median annoyance/assistantese rating is not worse than baseline;
-6. no evaluator flags a repeated systematic failure that violates a critical property.
-
-A result with insufficient sample size, a tie on pairwise preference, or missing blinding metadata is `INCONCLUSIVE`, not PASS. A sufficiently sampled non-tied result that violates any acceptance criterion is `FAIL`.
-
-## Receipt format
-
-The human-evaluation owner records a machine-readable aggregate receipt containing:
-
-```json
-{
-  "protocolVersion": "1.0.0",
-  "candidateRevision": "<40-character git sha>",
-  "baselineRevision": "<git sha or immutable artifact id>",
-  "holdoutBundleId": "<sealed id>",
-  "holdoutManifestSha256": "<sha256 of sealed manifest.json>",
-  "blinding": {
-    "anonymizedConditionLabels": true,
-    "randomizedPairOrder": true
-  },
-  "raterCount": 0,
-  "pairedRatings": 0,
-  "candidatePreferred": 0,
-  "baselinePreferred": 0,
-  "ties": 0,
-  "medianNaturalnessCandidate": 0,
-  "medianNaturalnessBaseline": 0,
-  "medianAnnoyanceCandidate": 0,
-  "medianAnnoyanceBaseline": 0,
-  "criticalIncidents": 0,
-  "systematicCriticalFailures": 0,
-  "decision": "PASS|FAIL|INCONCLUSIVE"
-}
-```
-
-The qualification runner derives the expected decision from these fields and rejects a contradictory declared decision. An isolated qualification environment may also pin `G6_CANDIDATE_REVISION`; when supplied, the receipt candidate revision must match it exactly.
-
-Only aggregate results and sealed bundle digests belong in the public repository. Raw rater identity/contact data and hidden expected answers remain outside the public repo.
+`human-result.schema.json` remains only as a legacy receipt schema. New G6 qualification must not use human-result receipts as release authority.

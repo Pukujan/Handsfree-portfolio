@@ -4,7 +4,13 @@
   "title": "G6 sealed holdout manifest",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "bundleId", "createdAt", "owner", "items"],
+  "required": [
+    "schemaVersion",
+    "bundleId",
+    "createdAt",
+    "owner",
+    "items"
+  ],
   "properties": {
     "schemaVersion": {"const": "1.0.0"},
     "bundleId": {"type": "string", "minLength": 8},
@@ -21,7 +27,7 @@
           "path": {"type": "string", "minLength": 1},
           "class": {"enum": ["retrieval", "conversation", "naturalness"]},
           "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-          "scoringAuthority": {"enum": ["deterministic", "blinded_human"]}
+          "scoringAuthority": {"enum": ["deterministic", "corpus_derived_deterministic"]}
         }
       }
     }

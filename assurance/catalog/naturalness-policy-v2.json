@@ -1,0 +1,23 @@
+{
+  "policyVersion": "2.0.0",
+  "gate": "G6",
+  "supersedes": {
+    "artifact": "assurance/catalog/properties-v1.json#oraclePolicy.naturalnessFinalAuthority",
+    "reason": "No human panel was part of the intended product qualification; no human ratings were collected before correction."
+  },
+  "oraclePolicy": {
+    "humanConversationEvidence": "public_corpora_and_peer_reviewed_research",
+    "syntheticAgents": "workload_only",
+    "modelJudges": "auxiliary_only",
+    "naturalnessFinalAuthority": "corpus_derived_deterministic_oracles",
+    "styleFactualAuthority": false
+  },
+  "properties": [
+    {"id":"PORTFOLIO-PROP-DIALOGUE-ACT-001","statement":"Response strategy matches the interaction's dialogue act rather than defaulting to generic assistant exposition.","oracle":"dialogue_pattern_strategy_match","testPaths":["services/portfolio-ai/tests/test_g6_dialogue_behavior.py","scripts/verify_g6_dialogue_baseline.py"]},
+    {"id":"PORTFOLIO-PROP-CONTEXT-SPECIFICITY-001","statement":"Context-dependent follow-ups preserve the relevant referent and choose a continuation strategy instead of restarting the conversation.","oracle":"context_dependency_and_referent_strategy","testPaths":["services/portfolio-ai/tests/test_g6_dialogue_behavior.py"]},
+    {"id":"PORTFOLIO-PROP-STYLE-ACCOMMODATION-001","statement":"Response length/register strategy adapts to the user's conversational style when doing so does not change factual meaning.","oracle":"categorical_style_accommodation","testPaths":["services/portfolio-ai/tests/test_g6_dialogue_behavior.py"]},
+    {"id":"PORTFOLIO-PROP-REPAIR-001","statement":"A correction or challenge selects an acknowledgement/repair strategy before the corrected answer where appropriate.","oracle":"repair_strategy_selection","testPaths":["services/portfolio-ai/tests/test_g6_dialogue_behavior.py"]},
+    {"id":"PORTFOLIO-PROP-TURN-ECONOMY-001","statement":"Conversational strategies avoid repeated-question boilerplate and unsolicited closing offers and select bounded response-length bands.","oracle":"assistantese_and_turn_economy_policy","testPaths":["services/portfolio-ai/tests/test_g6_dialogue_behavior.py","scripts/verify_g6_dialogue_baseline.py"]},
+    {"id":"PORTFOLIO-PROP-STYLE-NONAUTHORITY-001","statement":"Conversational style data contains no factual claims/evidence and cannot become an authority source for portfolio assertions.","oracle":"style_catalog_nonauthority_guard","testPaths":["services/portfolio-ai/tests/test_g6_dialogue_behavior.py","scripts/verify_g6_dialogue_baseline.py"]}
+  ]
+}

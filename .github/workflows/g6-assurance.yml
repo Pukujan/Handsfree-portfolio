@@ -15,6 +15,7 @@ jobs:
       FOSSIL_SCHEMA_ROOT: /tmp/fossil-core/schemas
       G6_MUTATION_RECEIPT_PATH: /tmp/g6-mutation-receipt.json
       G6_SIMULATOR_RECEIPT_PATH: /tmp/g6-simulator-receipt.json
+      G6_DIALOGUE_BASELINE_RECEIPT_PATH: /tmp/g6-dialogue-baseline-receipt.json
       G6_MACHINE_RECEIPT_PATH: /tmp/g6-machine-receipt.json
       G6_CHECKED_OUT_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
       G6_CANDIDATE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -66,6 +67,7 @@ jobs:
             services/portfolio-ai/tests/test_cache_authority.py \
             services/portfolio-ai/tests/test_g6_assurance.py \
             services/portfolio-ai/tests/test_g6_adversarial.py \
+            services/portfolio-ai/tests/test_g6_dialogue_behavior.py \
             services/portfolio-ai/tests/test_api.py
 
       - name: Hands-free, latency and UI behavior tests
@@ -74,10 +76,13 @@ jobs:
       - name: Deterministic persona workload
         run: python scripts/run_g6_simulator.py
 
+      - name: Establish corpus-backed dialogue baseline
+        run: python scripts/verify_g6_dialogue_baseline.py
+
       - name: Kill critical production-source mutants
         run: python scripts/verify_g6_mutations.py
 
-      - name: Emit machine-assurance / human-required receipt
+      - name: Emit machine-assurance / corpus-qualification receipt
         run: python scripts/verify_g6_machine.py
 
       - name: Upload G6 machine receipts
