@@ -1,10 +1,10 @@
 # Project State
 
 **Project:** Handsfree Portfolio
-**State:** G3 CONVERSATION KERNEL ACTIVE
+**State:** G4 HANDS-FREE UX ACTIVE
 **Control ledger:** GitHub Issue #1
-**Completed gates:** Issue #2 (G0), Issue #3 (G1), Issue #4 (G2)
-**Current executable gate:** Issue #5 (G3)
+**Completed gates:** Issue #2 (G0), Issue #3 (G1), Issue #4 (G2), Issue #5 (G3)
+**Current executable gate:** Issue #6 (G4)
 **First vertical slice:** Issue #12
 
 ## Continuation order
@@ -57,38 +57,57 @@ Frozen retrieval policy:
 4. Neo4j off default hot path; explicit evidence/provenance drill-down only;
 5. no embedding model and no Graphiti for Slice 1.
 
-## Current authorization — G3
+### G3
 
-Build the correctness-critical **text-only** conversation kernel over the proven G2 retrieval path. Do not attach voice yet.
+PR #17 merged as `76c0bd9c789d124d39947fd1d4be26a00fc03475`. Durable receipt: `docs/receipts/G3-CONVERSATION.md`.
 
-Required pipeline:
+Verified conversation baseline:
+- server-owned monotonic conversation generations;
+- stale generation fenced before factual publication;
+- no factual answer text published before grounding verification;
+- deterministic claim-bound rendering rejects unsupported expansion;
+- unsupported queries abstain with zero evidence;
+- active subject `FOSSIL` survives the Neo4j follow-up;
+- superseded claims disappear from current answers;
+- SSE carries verified turn events only;
+- runtime without real public FOSSIL state fails HTTP 503 rather than using fake production answers;
+- blocked-retrieval concurrency race and Hypothesis generation properties PASS;
+- final exact G0/G1/G2/G3 head green before merge.
+
+## Current authorization — G4
+
+Attach the locked hands-free mobile-first experience to the G3 SSE protocol. Voice remains a browser/application adapter and cannot own retrieval, grounding or conversation generations.
+
+Required interaction:
 
 ```text
-question
-→ acquire new conversation generation
-→ authorized FOSSIL-backed retrieval
-→ supported claim/evidence plan
-→ dialogue act + referent update
-→ renderer
-→ post-render grounding verification
-→ streamed turn events
-→ completion only if generation still owns publication
+identity / static portfolio shell
+→ one-tap hands-free enable
+→ speech recognition listening
+→ final meaningful transcript
+→ POST question to G3 SSE endpoint
+→ UI state changes only from actual server turn events
+→ verified answer stored from `answer.delta`
+→ speech begins only after `answer.grounded`
+→ `turn.complete` + speech end + hands-free still enabled
+→ automatic relisten
 ```
 
-Required Slice-1 behaviors:
-- “What is FOSSIL and why does it matter?” produces an evidence-bound answer;
-- follow-up “Why not just use Neo4j?” carries FOSSIL as active subject and answers the architecture correction;
-- a newer turn/interruption fences all pending publication from an older generation;
-- evidence shown belongs to the current answer plan;
-- unsupported retrieval produces an explicit abstention, not invented biography;
-- progress/latency events describe only real pending work;
-- renderer cannot add factual propositions beyond the supported claim plan.
+Required behaviors:
+- `retrieving` UI appears only after real `retrieval.started`;
+- `answer.delta` alone cannot trigger speech;
+- `answer.grounded` may speak the already-verified answer text;
+- `turn.cancelled` never speaks;
+- interruption stops local speech, begins listening, and the next recognized question starts a new server generation; G3 fences old publication;
+- microphone denial/unsupported browser degrades to text fallback without breaking static portfolio content;
+- hands-free disabled means no automatic relisten;
+- empty/noise transcript is not submitted;
+- reduced-motion, mobile safe-area and keyboard-safe 16px text input are required;
+- theme tokens may alter visual treatment/motion but not retrieval, evidence, permissions or answer semantics.
 
-Use deterministic rendering first. Naturalness/model rendering is not allowed to weaken correctness and can be evaluated later.
+Use native browser speech APIs as replaceable first adapters where available. Do not make Web Speech API support part of the correctness domain. Keep a real network SSE client as the default application composition; deterministic fake clients exist only in tests.
 
-Formal methods remain conditional: use TLA+ only if generation/cancellation ownership cannot be adequately proven with deterministic state-machine/property tests.
-
-Do not implement voice, cache policy or broad career ingestion in G3.
+Do not implement cache policy, model-based naturalization, broad career ingestion or deployment orchestration in G4.
 
 ## Slice 1 target
 
@@ -100,21 +119,21 @@ Hands-free recruiter conversation:
 - follow-up “Why not just use Neo4j?” resolved against FOSSIL context;
 - no private knowledge, graph authority shortcut, unsupported renderer expansion, or stale-turn publication.
 
-G3 proves the text/correctness portion only. G4 attaches the voice loop.
+G4 completes the interactive portion of Slice 1. G5 adds cache only after the uncached interaction is correct.
 
 ## Gate order
 
 - [x] #2 G0 Foundation
 - [x] #3 G1 Public FOSSIL knowledge pack
 - [x] #4 G2 Retrieval benchmark
-- [ ] #5 G3 Conversation kernel
+- [x] #5 G3 Conversation kernel
 - [ ] #6 G4 Hands-free UX
 - [ ] #7 G5 Response cache
 - [ ] #8 G6 Assurance harness
 - [ ] #9 G7 Production topology
 - [ ] #10 G8 Human qualification/release decision
 
-#12 is the end-to-end Slice-1 acceptance target spanning the minimum required portions of G0–G4.
+#12 is the end-to-end Slice-1 acceptance target spanning G0–G4.
 
 ## Frozen authority rules
 
