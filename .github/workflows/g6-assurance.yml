@@ -16,10 +16,15 @@ jobs:
       G6_MUTATION_RECEIPT_PATH: /tmp/g6-mutation-receipt.json
       G6_SIMULATOR_RECEIPT_PATH: /tmp/g6-simulator-receipt.json
       G6_MACHINE_RECEIPT_PATH: /tmp/g6-machine-receipt.json
+      G6_CHECKED_OUT_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+      G6_CANDIDATE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify exact candidate checkout
+        run: test "$(git rev-parse HEAD)" = "$G6_CHECKED_OUT_REVISION"
 
       - uses: pnpm/action-setup@v4
         with:
