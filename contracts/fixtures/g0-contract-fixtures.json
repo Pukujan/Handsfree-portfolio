@@ -1,0 +1,38 @@
+{
+  "portfolio-answer-v1.schema.json": {
+    "contractVersion": "1.0.0",
+    "turnId": "turn-fixture-1",
+    "generation": 1,
+    "dialogueAct": "ANSWER_DIRECT",
+    "claims": [
+      {"claimId": "claim-1", "proposition": "FOSSIL is a project.", "support": "supported", "evidenceIds": ["ev-1"]}
+    ],
+    "evidence": [
+      {"evidenceId": "ev-1", "sourceRef": "fixture://portfolio-public/fossil", "label": "Fixture evidence"}
+    ]
+  },
+  "turn-event-v1.schema.json": {
+    "contractVersion": "1.0.0",
+    "turnId": "turn-fixture-1",
+    "generation": 1,
+    "type": "turn.accepted",
+    "occurredAt": "2026-08-19T19:30:00Z",
+    "payload": {}
+  },
+  "conversation-state-v1.schema.json": {
+    "contractVersion": "1.0.0",
+    "activeGeneration": 1,
+    "state": "idle",
+    "activeSubject": "FOSSIL",
+    "referents": {"it": "FOSSIL"}
+  },
+  "public-career-pack-v1.schema.json": {
+    "contractVersion": "1.0.0",
+    "packId": "portfolio-public",
+    "revision": "fixture-revision-1",
+    "visibility": "public",
+    "readOnlyRuntime": true,
+    "entityTypes": ["Person", "Project", "Evidence", "SourceSnapshot"],
+    "relationTypes": ["BUILT", "EVIDENCED_BY", "DEMONSTRATES"]
+  }
+}
