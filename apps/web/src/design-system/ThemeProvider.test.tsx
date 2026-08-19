@@ -17,11 +17,11 @@ describe('ThemeProvider authority boundary', () => {
     expect(screen.getByTestId('theme-probe').textContent).toBe('bakery-v1');
     const before = document.documentElement.style.getPropertyValue('--background');
 
-    rerender(<ThemeProvider theme="plain-v1"><Probe /></ThemeProvider>);
-    expect(screen.getByTestId('theme-probe').textContent).toBe('plain-v1');
+    rerender(<ThemeProvider theme="minimal-v1"><Probe /></ThemeProvider>);
+    expect(screen.getByTestId('theme-probe').textContent).toBe('minimal-v1');
     const after = document.documentElement.style.getPropertyValue('--background');
 
-    expect(document.documentElement.dataset.theme).toBe('plain-v1');
+    expect(document.documentElement.dataset.theme).toBe('minimal-v1');
     expect(before).not.toBe(after);
   });
 });
