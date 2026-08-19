@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://design-bakery.com/contracts/g6-conversation-corpus-manifest-v1.schema.json",
+  "title": "G6 conversational research/corpus manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["manifestVersion", "policy", "sources"],
+  "properties": {
+    "manifestVersion": {"const": "1.0.0"},
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rawDialogueCommitted", "factualAuthority", "modelJudgeAuthority"],
+      "properties": {
+        "rawDialogueCommitted": {"const": false},
+        "factualAuthority": {"const": false},
+        "modelJudgeAuthority": {"const": "auxiliary_only"}
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "title", "canonicalUrl", "researchRoles", "license", "ingestion"],
+        "properties": {
+          "id": {"type": "string", "minLength": 3},
+          "kind": {"enum": ["paper", "dataset"]},
+          "title": {"type": "string", "minLength": 5},
+          "canonicalUrl": {"type": "string", "format": "uri"},
+          "researchRoles": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 3}, "uniqueItems": true},
+          "license": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["status", "identifier", "rawRedistributionAllowed"],
+            "properties": {
+              "status": {"enum": ["citation_only", "verified", "review_required"]},
+              "identifier": {"type": "string", "minLength": 2},
+              "rawRedistributionAllowed": {"type": "boolean"}
+            }
+          },
+          "ingestion": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["status", "allowedOutputs"],
+            "properties": {
+              "status": {"enum": ["metadata_only", "derived_features_only", "not_started"]},
+              "allowedOutputs": {"type": "array", "minItems": 1, "items": {"enum": ["aggregate_statistics", "categorical_patterns", "source_ids_only"]}, "uniqueItems": true}
+            }
+          }
+        }
+      }
+    }
+  }
+}
