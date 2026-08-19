@@ -47,8 +47,8 @@ jobs:
       - name: Shared contract validation
         run: python scripts/validate_contracts.py
 
-      - name: Pinned-source and FOSSIL pack tests
-        run: python -m pytest services/portfolio-ai/tests/test_public_source.py services/portfolio-ai/tests/test_fossil_pack.py
+      - name: Pinned-source, FOSSIL pack and graph-boundary tests
+        run: python -m pytest services/portfolio-ai/tests/test_public_source.py services/portfolio-ai/tests/test_fossil_pack.py services/portfolio-ai/tests/test_neo4j_projection.py
 
       - name: Live exact-SHA ingestion, lifecycle replay and destructive Neo4j rebuild
         run: python scripts/verify_g1_live.py
