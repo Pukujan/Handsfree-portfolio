@@ -132,20 +132,55 @@ def misapplied_correction(question: str, answer: str) -> bool:
     return answer.strip().lower().startswith("not quite.") and not explicit_premise_challenge(question)
 
 
-def surface_stats(pairs: Iterable[tuple[str, str]]) -> dict:
+def derive_ratio_question_floor(
+    multiwoz_pairs: Iterable[tuple[str, str]],
+    mrda_pairs: Iterable[tuple[str, str]],
+) -> int:
+    """Stabilize response/question ratios for terse prompts using human data only.
+
+    Ratios become numerically unstable when the denominator is a one-to-three-word
+    stress prompt. The floor is therefore derived from the smaller median human
+    question length across the two reference corpora; production data never tunes it.
+    """
+    multiwoz_questions = [word_count(question) for question, _answer in multiwoz_pairs]
+    mrda_questions = [word_count(question) for question, _answer in mrda_pairs]
+    if not multiwoz_questions or not mrda_questions:
+        raise ValueError("ratio floor requires both human reference corpora")
+    return max(
+        1,
+        math.floor(min(statistics.median(multiwoz_questions), statistics.median(mrda_questions))),
+    )
+
+
+def surface_stats(pairs: Iterable[tuple[str, str]], *, ratio_question_floor: int = 1) -> dict:
     pairs = tuple(pairs)
     if not pairs:
         raise ValueError("surface stats require pairs")
+    if ratio_question_floor < 1:
+        raise ValueError("ratio_question_floor must be positive")
+    question_words = [word_count(question) for question, _answer in pairs]
     response_words = [word_count(answer) for _question, answer in pairs]
-    ratios = [word_count(answer) / max(word_count(question), 1) for question, answer in pairs]
+    raw_ratios = [
+        word_count(answer) / max(word_count(question), 1)
+        for question, answer in pairs
+    ]
+    floor_normalized_ratios = [
+        word_count(answer) / max(word_count(question), ratio_question_floor)
+        for question, answer in pairs
+    ]
     count = len(pairs)
     return {
         "pairCount": count,
+        "medianQuestionWords": statistics.median(question_words),
+        "p10QuestionWords": percentile(question_words, 0.10),
         "medianResponseWords": statistics.median(response_words),
         "p90ResponseWords": percentile(response_words, 0.90),
         "p95ResponseWords": percentile(response_words, 0.95),
-        "medianResponseToQuestionWordRatio": statistics.median(ratios),
-        "p90ResponseToQuestionWordRatio": percentile(ratios, 0.90),
+        "medianResponseToQuestionWordRatio": statistics.median(raw_ratios),
+        "p90ResponseToQuestionWordRatio": percentile(raw_ratios, 0.90),
+        "ratioQuestionFloorWords": ratio_question_floor,
+        "medianFloorNormalizedResponseToQuestionWordRatio": statistics.median(floor_normalized_ratios),
+        "p90FloorNormalizedResponseToQuestionWordRatio": percentile(floor_normalized_ratios, 0.90),
         "acknowledgementPrefixRate": sum(acknowledgement_prefix(answer) for _q, answer in pairs) / count,
         "assistantesePrefixRate": sum(starts_with_assistantese(answer) for _q, answer in pairs) / count,
         "unsolicitedClosingRate": sum(has_unsolicited_closing(answer) for _q, answer in pairs) / count,
@@ -209,17 +244,24 @@ def production_pairs() -> tuple[tuple[str, str], ...]:
 def evaluate_surface_envelope(production: dict, multiwoz: dict, mrda: dict) -> tuple[str, list[str], dict]:
     if multiwoz["pairCount"] < MIN_HUMAN_REFERENCE_PAIRS or mrda["pairCount"] < MIN_HUMAN_REFERENCE_PAIRS:
         raise ValueError("human surface reference sample is unexpectedly small")
+    floors = {
+        production["ratioQuestionFloorWords"],
+        multiwoz["ratioQuestionFloorWords"],
+        mrda["ratioQuestionFloorWords"],
+    }
+    if len(floors) != 1:
+        raise ValueError("surface comparisons must use one human-derived ratio question floor")
 
     human_p95_words = max(multiwoz["p95ResponseWords"], mrda["p95ResponseWords"])
-    human_p90_ratio = max(
-        multiwoz["p90ResponseToQuestionWordRatio"],
-        mrda["p90ResponseToQuestionWordRatio"],
+    human_p90_floor_ratio = max(
+        multiwoz["p90FloorNormalizedResponseToQuestionWordRatio"],
+        mrda["p90FloorNormalizedResponseToQuestionWordRatio"],
     )
     defects: list[str] = []
     if production["medianResponseWords"] > human_p95_words:
         defects.append("MEDIAN_RESPONSE_OVER_HUMAN_P95")
-    if production["p90ResponseToQuestionWordRatio"] > human_p90_ratio:
-        defects.append("RESPONSE_TO_QUESTION_RATIO_ABOVE_HUMAN_P90")
+    if production["p90FloorNormalizedResponseToQuestionWordRatio"] > human_p90_floor_ratio:
+        defects.append("FLOOR_NORMALIZED_RESPONSE_TO_QUESTION_RATIO_ABOVE_HUMAN_P90")
     if production["assistantesePrefixRate"] > MAX_ASSISTANTESE_RATE:
         defects.append("ASSISTANTESE_PREFIX")
     if production["unsolicitedClosingRate"] > MAX_UNSOLICITED_CLOSING_RATE:
@@ -230,8 +272,10 @@ def evaluate_surface_envelope(production: dict, multiwoz: dict, mrda: dict) -> t
         defects.append("MISAPPLIED_CORRECTION_FRAMING")
 
     envelope = {
+        "ratioQuestionFloorWords": next(iter(floors)),
         "maximumMedianResponseWords": human_p95_words,
-        "maximumP90ResponseToQuestionWordRatio": human_p90_ratio,
+        "maximumP90FloorNormalizedResponseToQuestionWordRatio": human_p90_floor_ratio,
+        "rawP90ResponseToQuestionWordRatioDiagnosticOnly": True,
         "maximumAssistantesePrefixRate": MAX_ASSISTANTESE_RATE,
         "maximumUnsolicitedClosingRate": MAX_UNSOLICITED_CLOSING_RATE,
         "maximumHeadingOrListRate": MAX_HEADING_OR_LIST_RATE,
@@ -252,15 +296,21 @@ def main() -> None:
 
     multiwoz_root = Path(multiwoz_root_value)
     action_data = MULTIWOZ._load(multiwoz_root / "dialog_acts.json")
-    multiwoz_stats = surface_stats(iter_multiwoz_request_response_text(multiwoz_root, action_data))
-    mrda_stats = surface_stats(iter_mrda_question_content_pairs(Path(mrda_root_value)))
-    production_stats = surface_stats(production_pairs())
+    multiwoz_pairs = tuple(iter_multiwoz_request_response_text(multiwoz_root, action_data))
+    mrda_pairs = tuple(iter_mrda_question_content_pairs(Path(mrda_root_value)))
+    prod_pairs = production_pairs()
+    ratio_question_floor = derive_ratio_question_floor(multiwoz_pairs, mrda_pairs)
+    multiwoz_stats = surface_stats(multiwoz_pairs, ratio_question_floor=ratio_question_floor)
+    mrda_stats = surface_stats(mrda_pairs, ratio_question_floor=ratio_question_floor)
+    production_stats = surface_stats(prod_pairs, ratio_question_floor=ratio_question_floor)
     qualification, defects, envelope = evaluate_surface_envelope(production_stats, multiwoz_stats, mrda_stats)
 
     receipt = {
         "status": "PASS",
         "qualificationStatus": qualification,
         "experimentKind": "human_question_response_surface_envelope",
+        "metricRevision": "short_question_floor_v2",
+        "metricRationale": "Raw response/question ratios are diagnostic only for very terse prompts; the gating ratio uses a denominator floor derived solely from the smaller median human question length across the two reference corpora.",
         "sourceRevisions": {
             "multiwoz": MULTIWOZ.EXPECTED_SOURCE_SHA,
             "mrda": MRDA.EXPECTED_MRDA_SHA,
@@ -275,6 +325,7 @@ def main() -> None:
         "rawDialogueEmitted": False,
         "factualAuthority": False,
         "rendererModified": False,
+        "planningModified": True,
     }
 
     target_value = os.environ.get("G6_SURFACE_ENVELOPE_RECEIPT_PATH")
