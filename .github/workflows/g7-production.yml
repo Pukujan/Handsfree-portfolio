@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   production:
@@ -76,6 +76,19 @@ jobs:
           test -s pnpm-lock.yaml
           pnpm install --lockfile-only --frozen-lockfile
 
+      - name: Persist generated lockfile on the PR branch
+        if: github.event_name == 'pull_request'
+        env:
+          HEAD_BRANCH: ${{ github.head_ref }}
+        run: |
+          if test -n "$(git status --porcelain -- pnpm-lock.yaml)"; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -- pnpm-lock.yaml
+            git commit -m "g7 lock web production dependencies"
+            git push origin "HEAD:${HEAD_BRANCH}"
+          fi
+
       - uses: actions/upload-artifact@v4
         with:
           name: g7-pnpm-lock-${{ github.run_id }}
@@ -92,40 +105,64 @@ jobs:
 
       - name: Production edge and grounded-answer smoke test
         run: |
+          fail() {
+            echo "--- docker compose ps ---"
+            docker compose -f deploy/compose.production.yml ps || true
+            echo "--- docker compose logs ---"
+            docker compose -f deploy/compose.production.yml logs --no-color || true
+            exit 1
+          }
           cleanup() { docker compose -f deploy/compose.production.yml down -v --remove-orphans || true; }
           trap cleanup EXIT
           docker compose -f deploy/compose.production.yml up -d
+
+          ready=false
           for attempt in $(seq 1 30); do
-            if curl -fsS http://localhost/health >/tmp/g7-health.json; then break; fi
+            if curl -fsS http://localhost/health >/tmp/g7-health.json \
+              && grep -q '"status":"ok"' /tmp/g7-health.json; then
+              ready=true
+              break
+            fi
             sleep 1
           done
-          grep -q '"status":"ok"' /tmp/g7-health.json
-          curl -fsS http://localhost/ >/tmp/g7-index.html
-          grep -q 'id="root"' /tmp/g7-index.html
-          curl -fsS -N \
+          test "$ready" = true || fail
+
+          curl -fsS http://localhost/ >/tmp/g7-index.html || fail
+          grep -q 'id="root"' /tmp/g7-index.html || fail
+
+          curl -fsS -N -D /tmp/g7-sse-before.headers \
             -H 'Content-Type: application/json' \
             -H 'Accept: text/event-stream' \
             -H 'X-Request-ID: g7-container-before-restart' \
             --data '{"question":"What is FOSSIL?"}' \
             http://localhost/v1/conversations/g7-container-before-restart/turns \
-            >/tmp/g7-sse-before.txt
-          grep -q 'event: answer.grounded' /tmp/g7-sse-before.txt
-          grep -q 'event: turn.complete' /tmp/g7-sse-before.txt
+            >/tmp/g7-sse-before.txt || fail
+          grep -qi '^x-request-id: g7-container-before-restart' /tmp/g7-sse-before.headers || fail
+          grep -q 'event: answer.grounded' /tmp/g7-sse-before.txt || fail
+          grep -q 'event: turn.complete' /tmp/g7-sse-before.txt || fail
 
           docker compose -f deploy/compose.production.yml restart api
+          ready=false
           for attempt in $(seq 1 30); do
-            if curl -fsS http://localhost/health >/dev/null; then break; fi
+            if curl -fsS http://localhost/health >/tmp/g7-health-after-restart.json \
+              && grep -q '"status":"ok"' /tmp/g7-health-after-restart.json; then
+              ready=true
+              break
+            fi
             sleep 1
           done
-          curl -fsS -N \
+          test "$ready" = true || fail
+
+          curl -fsS -N -D /tmp/g7-sse-after.headers \
             -H 'Content-Type: application/json' \
             -H 'Accept: text/event-stream' \
             -H 'X-Request-ID: g7-container-after-restart' \
             --data '{"question":"What is FOSSIL?"}' \
             http://localhost/v1/conversations/g7-container-after-restart/turns \
-            >/tmp/g7-sse-after.txt
-          grep -q 'event: answer.grounded' /tmp/g7-sse-after.txt
-          grep -q 'event: turn.complete' /tmp/g7-sse-after.txt
+            >/tmp/g7-sse-after.txt || fail
+          grep -qi '^x-request-id: g7-container-after-restart' /tmp/g7-sse-after.headers || fail
+          grep -q 'event: answer.grounded' /tmp/g7-sse-after.txt || fail
+          grep -q 'event: turn.complete' /tmp/g7-sse-after.txt || fail
 
       - name: Finalize G7 machine receipt
         run: |
@@ -156,6 +193,7 @@ jobs:
                   'staticSiteThroughCaddy': True,
                   'groundedSseBeforeRestart': True,
                   'groundedSseAfterRestart': True,
+                  'requestIdThroughCaddy': True,
                   'neo4jClientInApiImage': False,
               },
               'graphServiceDeployed': False,

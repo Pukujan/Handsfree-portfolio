@@ -116,8 +116,12 @@ def verify() -> dict[str, Any]:
         _fail(f"public api runtime contains forbidden credential/config names: {forbidden_runtime_env}")
 
     caddyfile = CADDY_PATH.read_text(encoding="utf-8")
-    if "reverse_proxy @api api:8000" not in caddyfile:
-        _fail("Caddy must proxy API requests only to the internal api:8000 service")
+    if "@api path /health /v1/*" not in caddyfile:
+        _fail("Caddy must define the bounded health/API matcher")
+    if "handle @api" not in caddyfile or "reverse_proxy api:8000" not in caddyfile:
+        _fail("Caddy must route API requests through a dedicated handle before static fallback")
+    if "handle {" not in caddyfile or "try_files {path} /index.html" not in caddyfile:
+        _fail("Caddy must keep SPA fallback inside the non-API handle")
     for forbidden in (":7687", ":7474", "neo4j", "graphiti"):
         if forbidden.lower() in caddyfile.lower():
             _fail(f"Caddy public configuration references forbidden projection surface: {forbidden}")
@@ -157,6 +161,7 @@ def verify() -> dict[str, Any]:
         "defaultProjectionDependencies": [],
         "frontendEnvironmentNames": sorted(web_env),
         "graphServiceDeployed": False,
+        "apiRoutingIsolatedFromSpaFallback": True,
     }
     return result
 
