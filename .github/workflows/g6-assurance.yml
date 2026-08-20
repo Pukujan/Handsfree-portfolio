@@ -26,6 +26,7 @@ jobs:
       G6_DERIVED_STYLE_MODEL_PATH: /tmp/g6-derived-style-model.json
       G6_MRDA_TRANSFER_RECEIPT_PATH: /tmp/g6-mrda-transfer-receipt.json
       G6_SHARED_ONTOLOGY_RECEIPT_PATH: /tmp/g6-shared-ontology-receipt.json
+      G6_SURFACE_ENVELOPE_RECEIPT_PATH: /tmp/g6-surface-envelope-receipt.json
       G6_MACHINE_RECEIPT_PATH: /tmp/g6-machine-receipt.json
       G6_CHECKED_OUT_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
       G6_CANDIDATE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -85,6 +86,7 @@ jobs:
             services/portfolio-ai/tests/test_g6_semantic_transfer.py \
             services/portfolio-ai/tests/test_g6_shared_ontology.py \
             services/portfolio-ai/tests/test_g6_naturalness_finalizer.py \
+            services/portfolio-ai/tests/test_g6_surface_envelope.py \
             services/portfolio-ai/tests/test_api.py
 
       - name: Hands-free, latency and UI behavior tests
@@ -128,6 +130,9 @@ jobs:
 
       - name: Measure shared ontology and distributional discourse graph
         run: python scripts/verify_g6_shared_ontology.py
+
+      - name: Measure production answer surface against human question-response envelope
+        run: python scripts/verify_g6_surface_envelope.py
 
       - name: Kill critical production-source mutants
         run: python scripts/verify_g6_mutations.py
