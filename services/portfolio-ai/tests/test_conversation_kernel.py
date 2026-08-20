@@ -137,17 +137,34 @@ def test_slice1_two_turn_context_and_grounded_evidence() -> None:
     delta = event_of(second, "answer.delta")
     assert accepted.payload["activeSubject"] == "FOSSIL"
     assert accepted.payload["referents"]["it"] == "FOSSIL"
-    assert plan.payload["dialogueAct"] == "CORRECT_PREMISE"
-    assert delta.payload["text"].startswith("Not quite. ")
-    assert delta.payload["claimIds"] == [
-        "clm_portfolio_fossil_projection_0001",
-        "clm_portfolio_fossil_durable_truth_0001",
-    ]
+    assert plan.payload["dialogueAct"] == "EXPLAIN"
+    assert not delta.payload["text"].startswith("Not quite. ")
+    assert delta.payload["claimIds"] == ["clm_portfolio_fossil_projection_0001"]
+    assert len(delta.payload["evidenceIds"]) == 1
     assert event_of(second, "answer.grounded").payload["evidenceIds"] == delta.payload["evidenceIds"]
     assert sessions.get("c1").active_generation == 2
     assert sessions.get("c1").active_subject == "FOSSIL"
     assert sessions.get("c1").status == "complete"
     assert_contracts(first + second, sessions.get("c1"))
+
+
+def test_explicit_neo4j_premise_challenge_uses_concise_correction() -> None:
+    sessions = InMemoryConversationSessions()
+    kernel = make_kernel(sessions=sessions)
+    list(kernel.stream_turn(conversation_id="premise", question="What is FOSSIL?"))
+    events = list(
+        kernel.stream_turn(
+            conversation_id="premise",
+            question="I thought Neo4j was the durable authority.",
+        )
+    )
+    plan = event_of(events, "answer.planned")
+    delta = event_of(events, "answer.delta")
+    assert plan.payload["dialogueAct"] == "CORRECT_PREMISE"
+    assert delta.payload["text"].startswith("Not quite. ")
+    assert len(delta.payload["claimIds"]) == 1
+    assert len(delta.payload["evidenceIds"]) == 1
+    assert events[-1].type == "turn.complete"
 
 
 def test_unsupported_question_abstains_without_evidence() -> None:
