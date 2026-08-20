@@ -1,4 +1,5 @@
 import type { ConversationState, ConversationStreamClient, TurnEvent } from './conversation';
+import { DEFAULT_LATENCY_BRIDGE_MS, latencyBridgeFor } from './latencyBridge';
 import type { SpeechInputErrorCode, SpeechInputPort, SpeechOutputPort } from './voice';
 
 export type EvidenceView = {
@@ -56,6 +57,7 @@ export class HandsFreeController {
   private snapshot: HandsFreeSnapshot;
   private readonly listeners = new Set<Listener>();
   private requestAbort: AbortController | null = null;
+  private latencyBridgeTimer: ReturnType<typeof setTimeout> | null = null;
   private inputToken = 0;
   private speechToken = 0;
   private serverTurnComplete = false;
@@ -85,6 +87,23 @@ export class HandsFreeController {
     for (const listener of this.listeners) listener();
   }
 
+  private cancelLatencyBridge(): void {
+    if (this.latencyBridgeTimer !== null) clearTimeout(this.latencyBridgeTimer);
+    this.latencyBridgeTimer = null;
+  }
+
+  private scheduleLatencyBridge(generation: number): void {
+    this.cancelLatencyBridge();
+    const startedAt = Date.now();
+    this.latencyBridgeTimer = setTimeout(() => {
+      this.latencyBridgeTimer = null;
+      const pending = this.snapshot.state === 'retrieving'
+        && this.snapshot.activeGeneration === generation;
+      const bridge = latencyBridgeFor(Date.now() - startedAt, pending);
+      if (bridge) this.patch({ statusLine: bridge });
+    }, DEFAULT_LATENCY_BRIDGE_MS);
+  }
+
   startHandsFree(): void {
     if (!this.speechInput.isSupported()) {
       this.patch({
@@ -100,6 +119,7 @@ export class HandsFreeController {
   }
 
   stopHandsFree(): void {
+    this.cancelLatencyBridge();
     this.patch({ handsFreeEnabled: false, state: 'idle', statusLine: 'Hands-free mode is off.' });
     this.requestAbort?.abort();
     this.requestAbort = null;
@@ -108,6 +128,7 @@ export class HandsFreeController {
   }
 
   interrupt(): void {
+    this.cancelLatencyBridge();
     if (this.snapshot.activeGeneration > 0) {
       this.suppressedGeneration = Math.max(this.suppressedGeneration, this.snapshot.activeGeneration);
     }
@@ -172,6 +193,7 @@ export class HandsFreeController {
   }
 
   private handleSpeechInputError(code: SpeechInputErrorCode, detail?: string): void {
+    this.cancelLatencyBridge();
     this.stopInput();
     const terminal = code === 'not-allowed' || code === 'audio-capture' || code === 'unsupported';
     this.patch({
@@ -189,6 +211,7 @@ export class HandsFreeController {
     const normalized = question.trim();
     if (!this.isMeaningfulTranscript(normalized)) return;
 
+    this.cancelLatencyBridge();
     this.stopInput();
     this.requestAbort?.abort();
     const abort = new AbortController();
@@ -219,6 +242,7 @@ export class HandsFreeController {
       }
     } catch (error) {
       if (abort.signal.aborted) return;
+      this.cancelLatencyBridge();
       this.patch({
         state: 'fallback',
         error: error instanceof Error ? error.message : String(error),
@@ -235,6 +259,7 @@ export class HandsFreeController {
 
     if (event.type === 'turn.accepted') {
       if (event.generation < this.snapshot.activeGeneration) return;
+      this.cancelLatencyBridge();
       const activeSubject = typeof event.payload.activeSubject === 'string'
         ? event.payload.activeSubject
         : null;
@@ -251,11 +276,14 @@ export class HandsFreeController {
     switch (event.type) {
       case 'retrieval.started':
         this.patch({ state: 'retrieving', statusLine: 'Checking public evidence…' });
+        this.scheduleLatencyBridge(event.generation);
         break;
       case 'evidence.found':
+        this.cancelLatencyBridge();
         this.patch({ statusLine: 'Public evidence found.' });
         break;
       case 'answer.planned': {
+        this.cancelLatencyBridge();
         const evidence = Array.isArray(event.payload.evidence) ? event.payload.evidence : [];
         this.pendingEvidence = evidence.flatMap((item) => {
           if (!item || typeof item !== 'object') return [];
@@ -281,9 +309,11 @@ export class HandsFreeController {
         break;
       }
       case 'answer.grounded':
+        this.cancelLatencyBridge();
         this.speakGroundedAnswer();
         break;
       case 'turn.complete':
+        this.cancelLatencyBridge();
         this.serverTurnComplete = true;
         if (this.snapshot.state !== 'speaking') {
           this.patch({ state: 'complete', statusLine: 'Answer complete.' });
@@ -291,6 +321,7 @@ export class HandsFreeController {
         }
         break;
       case 'turn.cancelled':
+        this.cancelLatencyBridge();
         this.stopSpeech();
         this.patch({ state: 'cancelled', statusLine: 'That turn was cancelled before publication.' });
         break;

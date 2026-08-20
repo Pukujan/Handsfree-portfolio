@@ -1,0 +1,116 @@
+{
+  "catalogVersion": "1.0.0",
+  "gate": "G6",
+  "oraclePolicy": {
+    "machineBehavior": "deterministic",
+    "syntheticAgents": "workload_only",
+    "modelJudges": "auxiliary_only",
+    "naturalnessFinalAuthority": "blinded_humans"
+  },
+  "properties": [
+    {
+      "id": "PORTFOLIO-PROP-GROUNDING-001",
+      "criticality": "critical",
+      "statement": "Every published factual answer is an exact realization of the current supported claim plan and its current evidence.",
+      "oracle": "deterministic_grounding_verifier",
+      "testPaths": ["services/portfolio-ai/tests/test_conversation_kernel.py", "services/portfolio-ai/tests/test_g6_assurance.py"],
+      "mutations": ["MUT-RENDERER-EXPANSION-ALLOWED", "MUT-PRIOR-CITATION-REUSED"]
+    },
+    {
+      "id": "PORTFOLIO-PROP-PACK-ISOLATION-001",
+      "criticality": "critical",
+      "statement": "Public runtime reads are limited to the one mounted public FOSSIL pack and expose no write target.",
+      "oracle": "pack_access_boundary",
+      "testPaths": ["services/portfolio-ai/tests/test_fossil_pack.py", "services/portfolio-ai/tests/test_g6_assurance.py"],
+      "mutations": ["MUT-PACK-FILTER-DISABLED"]
+    },
+    {
+      "id": "PORTFOLIO-PROP-TURN-001",
+      "criticality": "critical",
+      "statement": "Only the newest live generation may publish answer text, grounding, completion, or speech.",
+      "oracle": "generation_ownership_and_suppression",
+      "testPaths": ["services/portfolio-ai/tests/test_conversation_kernel.py", "apps/web/src/application/HandsFreeController.test.ts"],
+      "mutations": ["MUT-GENERATION-FENCE-SKIPPED", "MUT-INTERRUPT-CONTINUES-SPEAKING"]
+    },
+    {
+      "id": "PORTFOLIO-PROP-CITATION-001",
+      "criticality": "critical",
+      "statement": "Displayed evidence IDs and source references are the current evidence actually used by the published plan.",
+      "oracle": "current_evidence_identity",
+      "testPaths": ["services/portfolio-ai/tests/test_response_cache.py", "services/portfolio-ai/tests/test_g6_assurance.py"],
+      "mutations": ["MUT-PRIOR-CITATION-REUSED", "MUT-STALE-EVIDENCE-ACCEPTED"]
+    },
+    {
+      "id": "PORTFOLIO-PROP-GRAPH-NONAUTHORITY-001",
+      "criticality": "critical",
+      "statement": "Neo4j is disposable projection state and cannot create, promote, or mutate canonical FOSSIL knowledge.",
+      "oracle": "projection_nonauthority_and_rebuild_digest",
+      "testPaths": ["services/portfolio-ai/tests/test_neo4j_projection.py", "scripts/verify_g1_public_knowledge.py", "scripts/check_architecture.py"],
+      "mutations": ["MUT-GRAPH-CANONICAL-MUTATION"]
+    },
+    {
+      "id": "PORTFOLIO-PROP-CACHE-AUTHORITY-001",
+      "criticality": "critical",
+      "statement": "A cache candidate is publishable only after current authority, claim, evidence, turn identity, and grounding are re-proven.",
+      "oracle": "cache_revalidation",
+      "testPaths": ["services/portfolio-ai/tests/test_response_cache.py", "services/portfolio-ai/tests/test_cache_authority.py"],
+      "mutations": ["MUT-CACHE-VALIDATION-BYPASSED", "MUT-STALE-EVIDENCE-ACCEPTED", "MUT-LIFECYCLE-INVERTED"]
+    },
+    {
+      "id": "PORTFOLIO-PROP-RENDERER-NONEXPANSION-001",
+      "criticality": "critical",
+      "statement": "Rendering cannot introduce a factual proposition outside the supported answer plan.",
+      "oracle": "canonical_render_equivalence",
+      "testPaths": ["services/portfolio-ai/tests/test_conversation_kernel.py", "services/portfolio-ai/tests/test_g6_assurance.py"],
+      "mutations": ["MUT-RENDERER-EXPANSION-ALLOWED"]
+    },
+    {
+      "id": "PORTFOLIO-PROP-LATENCY-TRUTH-001",
+      "criticality": "critical",
+      "statement": "A conversational latency acknowledgement is eligible only while qualifying backend work is actually pending and only after the declared delay budget.",
+      "oracle": "latency_bridge_policy",
+      "testPaths": ["apps/web/src/application/latencyBridge.test.ts"],
+      "mutations": ["MUT-LATENCY-ALWAYS", "MUT-LATENCY-NEVER"]
+    },
+    {
+      "id": "PORTFOLIO-PROP-INTERRUPT-001",
+      "criticality": "critical",
+      "statement": "Interruption stops local speech, suppresses the interrupted generation, and permits a replacement turn without stale playback.",
+      "oracle": "handsfree_interrupt_state_machine",
+      "testPaths": ["apps/web/src/application/HandsFreeController.test.ts"],
+      "mutations": ["MUT-INTERRUPT-CONTINUES-SPEAKING", "MUT-GENERATION-FENCE-SKIPPED"]
+    },
+    {
+      "id": "PORTFOLIO-PROP-LIFECYCLE-001",
+      "criticality": "critical",
+      "statement": "Superseded, redacted, retracted, rejected, or stale claims cannot be presented as current supported knowledge.",
+      "oracle": "fossil_current_state_replay",
+      "testPaths": ["scripts/verify_g3_conversation.py", "scripts/verify_g5_cache.py", "scripts/verify_g5_redaction.py", "services/portfolio-ai/tests/test_g6_assurance.py"],
+      "mutations": ["MUT-LIFECYCLE-INVERTED"]
+    },
+    {
+      "id": "PORTFOLIO-PROP-FALLBACK-001",
+      "criticality": "high",
+      "statement": "Retrieval, cache, microphone, speech-output, or assistant failures degrade safely without invented factual output and without disabling static/text browsing.",
+      "oracle": "safe_degradation",
+      "testPaths": ["services/portfolio-ai/tests/test_response_cache.py", "apps/web/src/application/HandsFreeController.test.ts", "apps/web/src/ui/App.test.tsx"],
+      "mutations": ["MUT-CACHE-OUTAGE-IS-FATAL"]
+    },
+    {
+      "id": "PORTFOLIO-PROP-THEME-NONAUTHORITY-001",
+      "criticality": "high",
+      "statement": "Theme selection changes visual tokens only and cannot alter retrieval, evidence, permissions, generation, or answer semantics.",
+      "oracle": "design_system_dependency_boundary",
+      "testPaths": ["scripts/check_architecture.py", "apps/web/src/design-system/ThemeProvider.test.tsx"],
+      "mutations": ["MUT-THEME-IMPORTS-BEHAVIOR"]
+    },
+    {
+      "id": "PORTFOLIO-PROP-SOURCE-UNTRUSTED-001",
+      "criticality": "critical",
+      "statement": "Retrieved/source text is treated as inert evidence data; instruction-like text in source bytes cannot widen permissions or become control policy.",
+      "oracle": "source_bytes_inert_and_claim_specific",
+      "testPaths": ["services/portfolio-ai/tests/test_fossil_pack.py", "services/portfolio-ai/tests/test_g6_adversarial.py"],
+      "mutations": ["MUT-SOURCE-INSTRUCTION-EXECUTED"]
+    }
+  ]
+}

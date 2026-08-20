@@ -1,0 +1,17 @@
+{
+  "catalogVersion": "1.0.0",
+  "authority": "style_only",
+  "description": "Research-derived conversational response strategies. No factual claims, source text, or dialogue utterances are stored here.",
+  "patterns": [
+    {"patternId":"PAT-GREETING","match":{"userAct":"greeting","contextDependency":"none","userRegister":"*","urgency":"*"},"strategy":{"moves":["acknowledge"],"lengthBand":"short","acknowledgePrevious":true,"repeatQuestion":false,"unsolicitedOffer":false},"researchRefs":["R-MAITRA-2025"]},
+    {"patternId":"PAT-DIRECT-TERSE","match":{"userAct":"direct_question","contextDependency":"none","userRegister":"terse","urgency":"normal"},"strategy":{"moves":["answer"],"lengthBand":"short","acknowledgePrevious":false,"repeatQuestion":false,"unsolicitedOffer":false},"researchRefs":["R-DURANDARD-2025","R-DURANDARD-LSM-2025"]},
+    {"patternId":"PAT-DIRECT-NEUTRAL","match":{"userAct":"direct_question","contextDependency":"none","userRegister":"neutral","urgency":"normal"},"strategy":{"moves":["answer","support_if_needed"],"lengthBand":"medium","acknowledgePrevious":false,"repeatQuestion":false,"unsolicitedOffer":false},"researchRefs":["R-DURANDARD-2025","R-PARANJAPE-2021"]},
+    {"patternId":"PAT-FOLLOWUP-REFERENT","match":{"userAct":"followup_question","contextDependency":"high","userRegister":"*","urgency":"normal"},"strategy":{"moves":["resolve_referent","answer"],"lengthBand":"short","acknowledgePrevious":false,"repeatQuestion":false,"unsolicitedOffer":false},"researchRefs":["R-PARANJAPE-2021","R-MAITRA-2025"]},
+    {"patternId":"PAT-CHALLENGE","match":{"userAct":"challenge","contextDependency":"high","userRegister":"*","urgency":"normal"},"strategy":{"moves":["acknowledge","answer","support"],"lengthBand":"medium","acknowledgePrevious":true,"repeatQuestion":false,"unsolicitedOffer":false},"researchRefs":["R-PARANJAPE-2021","R-MAITRA-2025"]},
+    {"patternId":"PAT-CORRECTION","match":{"userAct":"correction","contextDependency":"high","userRegister":"*","urgency":"normal"},"strategy":{"moves":["repair","answer"],"lengthBand":"short","acknowledgePrevious":true,"repeatQuestion":false,"unsolicitedOffer":false},"researchRefs":["R-PARANJAPE-2021"]},
+    {"patternId":"PAT-EVIDENCE-REQUEST","match":{"userAct":"evidence_request","contextDependency":"high","userRegister":"*","urgency":"normal"},"strategy":{"moves":["acknowledge","support"],"lengthBand":"short","acknowledgePrevious":true,"repeatQuestion":false,"unsolicitedOffer":false},"researchRefs":["R-PARANJAPE-2021","R-MAITRA-2025"]},
+    {"patternId":"PAT-INTERRUPTION-IMPATIENT","match":{"userAct":"interruption","contextDependency":"high","userRegister":"terse","urgency":"impatient"},"strategy":{"moves":["acknowledge","answer"],"lengthBand":"short","acknowledgePrevious":true,"repeatQuestion":false,"unsolicitedOffer":false},"researchRefs":["R-DURANDARD-2025","R-MAITRA-2025"]},
+    {"patternId":"PAT-PRIVATE-BOUNDARY","match":{"userAct":"private_request","contextDependency":"*","userRegister":"*","urgency":"*"},"strategy":{"moves":["boundary","answer_if_public"],"lengthBand":"short","acknowledgePrevious":false,"repeatQuestion":false,"unsolicitedOffer":false},"researchRefs":["R-PARANJAPE-2021"]},
+    {"patternId":"PAT-GENERIC-FALLBACK","match":{"userAct":"*","contextDependency":"*","userRegister":"*","urgency":"*"},"strategy":{"moves":["answer"],"lengthBand":"medium","acknowledgePrevious":false,"repeatQuestion":false,"unsolicitedOffer":false},"researchRefs":["R-SAMANTA-2026"]}
+  ]
+}

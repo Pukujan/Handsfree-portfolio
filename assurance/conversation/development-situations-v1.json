@@ -1,0 +1,19 @@
+{
+  "benchmarkVersion": "1.0.0",
+  "status": "development_baseline",
+  "description": "Public structured situations used to prove the deterministic matcher contract. This is not the final frozen qualification holdout.",
+  "cases": [
+    {"id":"DEV-01","input":{"situationId":"DEV-01","userAct":"greeting","contextDependency":"none","userRegister":"neutral","urgency":"normal"},"expectedPatternId":"PAT-GREETING","requiredMoves":["acknowledge"]},
+    {"id":"DEV-02","input":{"situationId":"DEV-02","userAct":"direct_question","contextDependency":"none","userRegister":"terse","urgency":"normal"},"expectedPatternId":"PAT-DIRECT-TERSE","requiredMoves":["answer"]},
+    {"id":"DEV-03","input":{"situationId":"DEV-03","userAct":"direct_question","contextDependency":"none","userRegister":"neutral","urgency":"normal"},"expectedPatternId":"PAT-DIRECT-NEUTRAL","requiredMoves":["answer"]},
+    {"id":"DEV-04","input":{"situationId":"DEV-04","userAct":"followup_question","contextDependency":"high","userRegister":"terse","urgency":"normal","previousAct":"answer"},"expectedPatternId":"PAT-FOLLOWUP-REFERENT","requiredMoves":["resolve_referent","answer"]},
+    {"id":"DEV-05","input":{"situationId":"DEV-05","userAct":"followup_question","contextDependency":"high","userRegister":"neutral","urgency":"normal","previousAct":"answer"},"expectedPatternId":"PAT-FOLLOWUP-REFERENT","requiredMoves":["resolve_referent","answer"]},
+    {"id":"DEV-06","input":{"situationId":"DEV-06","userAct":"challenge","contextDependency":"high","userRegister":"terse","urgency":"normal","previousAct":"answer"},"expectedPatternId":"PAT-CHALLENGE","requiredMoves":["acknowledge","answer","support"]},
+    {"id":"DEV-07","input":{"situationId":"DEV-07","userAct":"correction","contextDependency":"high","userRegister":"terse","urgency":"normal","previousAct":"answer"},"expectedPatternId":"PAT-CORRECTION","requiredMoves":["repair","answer"]},
+    {"id":"DEV-08","input":{"situationId":"DEV-08","userAct":"evidence_request","contextDependency":"high","userRegister":"neutral","urgency":"normal","previousAct":"answer"},"expectedPatternId":"PAT-EVIDENCE-REQUEST","requiredMoves":["acknowledge","support"]},
+    {"id":"DEV-09","input":{"situationId":"DEV-09","userAct":"interruption","contextDependency":"high","userRegister":"terse","urgency":"impatient","previousAct":"answer"},"expectedPatternId":"PAT-INTERRUPTION-IMPATIENT","requiredMoves":["acknowledge","answer"]},
+    {"id":"DEV-10","input":{"situationId":"DEV-10","userAct":"private_request","contextDependency":"low","userRegister":"neutral","urgency":"normal"},"expectedPatternId":"PAT-PRIVATE-BOUNDARY","requiredMoves":["boundary"]},
+    {"id":"DEV-11","input":{"situationId":"DEV-11","userAct":"unknown_act","contextDependency":"none","userRegister":"neutral","urgency":"normal"},"expectedPatternId":"PAT-GENERIC-FALLBACK","requiredMoves":["answer"]},
+    {"id":"DEV-12","input":{"situationId":"DEV-12","userAct":"direct_question","contextDependency":"none","userRegister":"terse","urgency":"impatient"},"expectedPatternId":"PAT-DIRECT-TERSE","requiredMoves":["answer"]}
+  ]
+}

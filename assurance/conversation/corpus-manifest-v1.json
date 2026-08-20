@@ -1,0 +1,100 @@
+{
+  "manifestVersion": "1.0.0",
+  "policy": {
+    "rawDialogueCommitted": false,
+    "factualAuthority": false,
+    "modelJudgeAuthority": "auxiliary_only"
+  },
+  "sources": [
+    {
+      "id": "R-DURANDARD-2025",
+      "kind": "paper",
+      "title": "LLMs stick to the point, humans to style: Semantic and Stylistic Alignment in Human and LLM Communication",
+      "canonicalUrl": "https://aclanthology.org/2025.sigdial-1.16/",
+      "researchRoles": ["style_accommodation", "semantic_vs_stylistic_alignment"],
+      "license": {"status": "citation_only", "identifier": "ACL-Anthology-paper", "rawRedistributionAllowed": false},
+      "ingestion": {"status": "metadata_only", "allowedOutputs": ["aggregate_statistics", "categorical_patterns"]}
+    },
+    {
+      "id": "R-DURANDARD-LSM-2025",
+      "kind": "paper",
+      "title": "Language Style Matching in Large Language Models",
+      "canonicalUrl": "https://aclanthology.org/2025.sigdial-1.50/",
+      "researchRoles": ["style_accommodation", "language_style_matching"],
+      "license": {"status": "citation_only", "identifier": "ACL-Anthology-paper", "rawRedistributionAllowed": false},
+      "ingestion": {"status": "metadata_only", "allowedOutputs": ["aggregate_statistics", "categorical_patterns"]}
+    },
+    {
+      "id": "R-MAITRA-2025",
+      "kind": "paper",
+      "title": "Dialogue Acts as a Lens on Human–LLM Interaction: Analyzing Conversational Norms in Model-Generated Responses",
+      "canonicalUrl": "https://aclanthology.org/2025.hcinlp-1.25/",
+      "researchRoles": ["dialogue_act_fit", "acknowledgement", "backchannel"],
+      "license": {"status": "citation_only", "identifier": "ACL-Anthology-paper", "rawRedistributionAllowed": false},
+      "ingestion": {"status": "metadata_only", "allowedOutputs": ["aggregate_statistics", "categorical_patterns"]}
+    },
+    {
+      "id": "R-PARANJAPE-2021",
+      "kind": "paper",
+      "title": "Human-like informative conversations: Better acknowledgements using conditional mutual information",
+      "canonicalUrl": "https://aclanthology.org/2021.naacl-main.61/",
+      "researchRoles": ["acknowledgement", "context_specificity", "transition"],
+      "license": {"status": "citation_only", "identifier": "ACL-Anthology-paper", "rawRedistributionAllowed": false},
+      "ingestion": {"status": "metadata_only", "allowedOutputs": ["aggregate_statistics", "categorical_patterns"]}
+    },
+    {
+      "id": "R-SAMANTA-2026",
+      "kind": "paper",
+      "title": "Simple Agents, Biased Judges: Efficient Multi-Party Dialogue Generation & The Evaluation Gap",
+      "canonicalUrl": "https://aclanthology.org/2026.acl-long.2006/",
+      "researchRoles": ["assistantese_bias", "judge_limitations", "verbosity"],
+      "license": {"status": "citation_only", "identifier": "ACL-Anthology-paper", "rawRedistributionAllowed": false},
+      "ingestion": {"status": "metadata_only", "allowedOutputs": ["aggregate_statistics", "categorical_patterns"]}
+    },
+    {
+      "id": "D-MULTIWOZ",
+      "kind": "dataset",
+      "title": "MultiWOZ 2.2 human-human task-oriented dialogue corpus",
+      "canonicalUrl": "https://github.com/budzianowski/multiwoz/tree/fe0c8e65cfcd8462bd33c86e35f21addc84ca82b/data/MultiWOZ_2.2",
+      "researchRoles": ["task_dialogue", "turn_economy", "dialogue_act_transition"],
+      "license": {"status": "verified", "identifier": "MIT-repository-license", "rawRedistributionAllowed": false},
+      "ingestion": {"status": "derived_features_only", "allowedOutputs": ["aggregate_statistics", "categorical_patterns", "source_ids_only", "lexical_feature_counts"]}
+    },
+    {
+      "id": "D-MRDA",
+      "kind": "dataset",
+      "title": "ICSI Meeting Recorder Dialog Act Corpus public mirror",
+      "canonicalUrl": "https://github.com/NathanDuran/MRDA-Corpus/tree/58006b32d4e36ca518e365899924cd56035466a2",
+      "researchRoles": ["professional_human_dialogue", "dialogue_act_transition", "acknowledgement", "backchannel", "repair_and_interruption", "domain_transfer"],
+      "license": {"status": "review_required", "identifier": "GPL-3.0-repository-license; underlying-corpus-rights-not-independently-verified", "rawRedistributionAllowed": false},
+      "ingestion": {"status": "derived_features_only", "allowedOutputs": ["aggregate_statistics", "categorical_patterns", "source_ids_only"]}
+    },
+    {
+      "id": "D-EMPATHETIC",
+      "kind": "dataset",
+      "title": "EmpatheticDialogues human conversation corpus",
+      "canonicalUrl": "https://github.com/facebookresearch/EmpatheticDialogues",
+      "researchRoles": ["acknowledgement", "interpersonal_response", "transition"],
+      "license": {"status": "verified", "identifier": "CC-BY-NC-4.0", "rawRedistributionAllowed": false},
+      "ingestion": {"status": "derived_features_only", "allowedOutputs": ["aggregate_statistics", "categorical_patterns", "source_ids_only"]}
+    },
+    {
+      "id": "D-DAILYDIALOG",
+      "kind": "dataset",
+      "title": "DailyDialog human-written multi-turn dialogue corpus",
+      "canonicalUrl": "https://aclanthology.org/I17-1099/",
+      "researchRoles": ["daily_dialogue", "dialogue_act_transition", "turn_economy"],
+      "license": {"status": "review_required", "identifier": "license-not-verified-for-redistribution", "rawRedistributionAllowed": false},
+      "ingestion": {"status": "not_started", "allowedOutputs": ["aggregate_statistics", "categorical_patterns", "source_ids_only"]}
+    },
+    {
+      "id": "D-SWDA",
+      "kind": "dataset",
+      "title": "Switchboard Dialog Act Corpus",
+      "canonicalUrl": "https://github.com/cgpotts/swda",
+      "researchRoles": ["dialogue_act_transition", "acknowledgement", "backchannel"],
+      "license": {"status": "review_required", "identifier": "underlying-corpus-rights-require-review", "rawRedistributionAllowed": false},
+      "ingestion": {"status": "not_started", "allowedOutputs": ["aggregate_statistics", "categorical_patterns", "source_ids_only"]}
+    }
+  ]
+}

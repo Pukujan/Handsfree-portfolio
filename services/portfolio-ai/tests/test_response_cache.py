@@ -244,7 +244,9 @@ def test_material_conversation_context_prevents_cross_context_hit() -> None:
     contextual = list(kernel.stream_turn(conversation_id="with-context", question="Why not just use Neo4j?"))
     fresh = list(kernel.stream_turn(conversation_id="fresh", question="Why not just use Neo4j?"))
 
-    assert event(contextual, "answer.delta").payload["text"].startswith("Not quite. ")
+    assert event(contextual, "turn.accepted").payload["activeSubject"] == "FOSSIL"
+    assert event(fresh, "turn.accepted").payload["activeSubject"] is None
+    assert not event(contextual, "answer.delta").payload["text"].startswith("Not quite. ")
     assert not event(fresh, "answer.delta").payload["text"].startswith("Not quite. ")
     assert "retrieval.started" in [item.type for item in fresh]
     assert retriever.calls == 3

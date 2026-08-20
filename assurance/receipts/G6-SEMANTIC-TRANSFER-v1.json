@@ -1,0 +1,42 @@
+{
+  "receiptVersion": "1.0.0",
+  "status": "PASS",
+  "decision": "SEMANTIC_BRIDGE_NOT_EARNED",
+  "evidenceRun": {
+    "candidateRevision": "d1e543d92748e563258c314c90d4d46bb638dc03",
+    "workflowRunId": 32321216951,
+    "artifactId": 9389885452,
+    "artifactZipSha256": "214030b93c9890ac1b3cac893a0ce5651911ca960c241919a2d434ad43f59039"
+  },
+  "experiment": {
+    "kind": "evaluation_only_semantic_user_act_bridge",
+    "package": "sentence-transformers",
+    "packageVersion": "5.6.1",
+    "modelId": "sentence-transformers/all-MiniLM-L6-v2",
+    "modelRevision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+    "modelLicense": "Apache-2.0",
+    "classifier": "nearest_normalized_class_centroid",
+    "trainingSource": "MultiWOZ-2.2-dev",
+    "evaluationSources": ["MultiWOZ-2.2-test", "MRDA-test"]
+  },
+  "selectionPolicy": {
+    "minimumMrdaUserActTop1Accuracy": 0.8,
+    "minimumMrdaAbsoluteImprovementOverLexical": 0.2,
+    "minimumMultiwozUserActTop1Accuracy": 0.8
+  },
+  "results": {
+    "lexicalMrdaUserActTop1Accuracy": 0.20323592537559848,
+    "semanticMrdaUserActTop1Accuracy": 0.17880138682516097,
+    "mrdaAbsoluteImprovementOverLexical": -0.024434538550437507,
+    "multiwozUserActTop1Accuracy": 0.8348522507594587,
+    "mrdaScorableUserActCount": 6057,
+    "multiwozExampleCount": 7242
+  },
+  "authority": {
+    "factualAuthority": false,
+    "renderingAuthority": false,
+    "responseStrategyAuthority": false,
+    "rawDialogueEmitted": false
+  },
+  "conclusion": "The pinned embedding centroid preserved in-domain MultiWOZ performance but degraded professional-domain MRDA user-act classification relative to the deterministic lexical baseline. Semantic vector similarity therefore does not earn admission for this bridge."
+}
