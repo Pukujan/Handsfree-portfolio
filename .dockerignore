@@ -1,0 +1,16 @@
+.git
+.github
+**/__pycache__
+**/.pytest_cache
+**/node_modules
+**/dist
+assurance
+benchmarks
+docs
+knowledge
+scripts
+services/portfolio-ai/tests
+*.md
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
