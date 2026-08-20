@@ -4,8 +4,8 @@ import { expect, test, type BrowserContext, type Request, type Response } from '
 
 const FIRST_QUESTION = 'What is FOSSIL and why does it matter?';
 const SECOND_QUESTION = 'Why not just use Neo4j?';
-const FIRST_ANSWER = "FOSSIL's durable knowledge authority is its evidence, stable identities, append-only knowledge events, versioned contracts, provenance, and history—not Neo4j or Graphiti.";
-const SECOND_ANSWER = 'Graphiti and Neo4j are replaceable projections of already-durable FOSSIL knowledge and must be rebuildable from durable state.';
+const FIRST_ANSWER = "FOSSIL's durable knowledge authority is its evidence.";
+const SECOND_ANSWER = 'Graphiti and Neo4j are replaceable projections of already-durable FOSSIL knowledge.';
 const FOSSIL_SOURCE_PREFIX = 'Pukujan/fossil-core@b5fd57725c910b149910371964adb35d9280016e:ARCHITECTURE.md';
 
 type Slice1Window = Window & typeof globalThis & {
