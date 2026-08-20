@@ -1,0 +1,39 @@
+{
+  "contractVersion": "1.0.0",
+  "status": "evaluation_only_not_runtime_admitted",
+  "purpose": "Test whether semantic user-act classification earns admission after measured lexical cross-domain failure.",
+  "authority": {
+    "factualAuthority": false,
+    "renderingAuthority": false,
+    "responseStrategyAuthority": false
+  },
+  "implementation": {
+    "package": "sentence-transformers",
+    "packageVersion": "5.6.1",
+    "modelId": "sentence-transformers/all-MiniLM-L6-v2",
+    "modelRevision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+    "modelLicense": "Apache-2.0",
+    "classifier": "nearest_normalized_class_centroid"
+  },
+  "training": {
+    "source": "MultiWOZ-2.2-dev",
+    "sourceRevision": "fe0c8e65cfcd8462bd33c86e35f21addc84ca82b",
+    "usesMrdaLabels": false
+  },
+  "evaluation": {
+    "inDomain": "MultiWOZ-2.2-test",
+    "crossDomain": "MRDA-test",
+    "mrdaSourceRevision": "58006b32d4e36ca518e365899924cd56035466a2"
+  },
+  "admissionPolicy": {
+    "minimumMrdaUserActTop1Accuracy": 0.8,
+    "minimumMrdaAbsoluteImprovementOverLexical": 0.2,
+    "minimumMultiwozUserActTop1Accuracy": 0.8,
+    "scopeIfPassed": "user_act_classification_only"
+  },
+  "dataPolicy": {
+    "rawDialogueCommitted": false,
+    "rawDialogueEmitted": false,
+    "aggregateEvidenceOnly": true
+  }
+}
