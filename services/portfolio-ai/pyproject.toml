@@ -18,6 +18,9 @@ dependencies = [
 projection = [
   "neo4j>=6.2,<7"
 ]
+storage = [
+  "boto3>=1.40,<2"
+]
 dev = [
   "pytest>=8,<10",
   "hypothesis>=6,<7",
