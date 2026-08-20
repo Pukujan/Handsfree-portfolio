@@ -45,6 +45,13 @@ async function mockGroundedApi(page: Page): Promise<void> {
   });
 }
 
+async function installUnsupportedSpeech(context: BrowserContext): Promise<void> {
+  await context.addInitScript(() => {
+    Object.defineProperty(window, 'SpeechRecognition', { configurable: true, value: undefined });
+    Object.defineProperty(window, 'webkitSpeechRecognition', { configurable: true, value: undefined });
+  });
+}
+
 async function installSuccessfulSpeech(context: BrowserContext): Promise<void> {
   await context.addInitScript(({ question }) => {
     type Recognition = {
@@ -133,7 +140,10 @@ async function installDeniedSpeech(context: BrowserContext): Promise<void> {
   });
 }
 
-test('static/text fallback is keyboard-usable and has no serious axe violations', async ({ page }) => {
+test('static/text fallback is keyboard-usable and has no serious axe violations', async ({ browser }) => {
+  const context = await browser.newContext();
+  await installUnsupportedSpeech(context);
+  const page = await context.newPage();
   await mockGroundedApi(page);
   await page.goto('/');
 
@@ -167,6 +177,7 @@ test('static/text fallback is keyboard-usable and has no serious axe violations'
   const evidence = page.getByLabel('Grounding evidence').getByText(EVIDENCE_LABEL, { exact: true });
   await expect(evidence).toBeVisible();
   await expect(evidence).toHaveAttribute('title', SOURCE_REF);
+  await context.close();
 });
 
 test('360px mobile viewport has no horizontal overflow and keeps primary controls usable', async ({ page }) => {
