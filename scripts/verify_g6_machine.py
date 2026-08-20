@@ -119,6 +119,25 @@ def validate_dialogue_baseline_receipt() -> tuple[str, dict | None]:
     return "BASELINE_ESTABLISHED", receipt
 
 
+def validate_corpus_transition_receipt() -> tuple[str, dict | None]:
+    value = os.environ.get("G6_CORPUS_TRANSITION_RECEIPT_PATH")
+    if not value:
+        return "REQUIRED", None
+    path = Path(value)
+    if not path.exists():
+        raise SystemExit(f"G6_CORPUS_TRANSITION_RECEIPT_PATH does not exist: {path}")
+    receipt = load(path)
+    if receipt.get("status") != "PASS":
+        raise SystemExit("corpus transition benchmark did not pass")
+    if receipt.get("sourceRevision") != "fe0c8e65cfcd8462bd33c86e35f21addc84ca82b":
+        raise SystemExit("corpus transition receipt is not pinned to the reviewed MultiWOZ revision")
+    if receipt.get("rawDialogueEmitted") is not False or receipt.get("factualAuthority") is not False:
+        raise SystemExit("corpus transition extraction crossed the style-only authority boundary")
+    if receipt.get("testPairCount", 0) < 100:
+        raise SystemExit("corpus transition benchmark sample is unexpectedly small")
+    return str(receipt.get("graphRuntimeAdmission", "NOT_EARNED")), receipt
+
+
 def main() -> None:
     properties_doc = load(ASSURANCE / "catalog" / "properties-v1.json")
     personas_doc = load(ASSURANCE / "personas" / "personas-v1.json")
@@ -164,6 +183,7 @@ def main() -> None:
         raise SystemExit("hidden holdout answers must not be committed to the public repository")
 
     dialogue_status, dialogue_receipt = validate_dialogue_baseline_receipt()
+    graph_evidence, corpus_transition_receipt = validate_corpus_transition_receipt()
     receipt = {
         "machineStatus": "MACHINE_ASSURANCE_PASS",
         "naturalnessQualification": dialogue_status,
@@ -178,6 +198,7 @@ def main() -> None:
         "modelJudgeAuthority": "auxiliary_only",
         "naturalnessEvidenceAuthority": "public_human_dialogue_corpora_and_peer_reviewed_research",
         "factualAuthorityForStyleRetrieval": False,
+        "corpusTransitionGraphEvidence": graph_evidence,
         "workflowSha": checked_out_revision(),
     }
     if dialogue_receipt is not None:
@@ -194,6 +215,27 @@ def main() -> None:
                 "assistantesePolicyPassRate",
                 "semanticMatcherAdmission",
                 "graphMatcherAdmission",
+            )
+        }
+
+    if corpus_transition_receipt is not None:
+        receipt["corpusTransitionSummary"] = {
+            key: corpus_transition_receipt[key]
+            for key in (
+                "source",
+                "sourceRevision",
+                "trainingSplit",
+                "evaluationSplit",
+                "trainingPairCount",
+                "testPairCount",
+                "userActNodeCount",
+                "globalBaselineTop1Accuracy",
+                "conditionalGraphTop1Accuracy",
+                "conditionalGraphAbsoluteGain",
+                "conditionalGraphCoverage",
+                "graphRuntimeAdmission",
+                "rawDialogueEmitted",
+                "factualAuthority",
             )
         }
 
