@@ -155,20 +155,30 @@ test('static/text fallback is keyboard-usable and has no serious axe violations'
   const blocking = audit.violations.filter((violation) => violation.impact === 'critical' || violation.impact === 'serious');
   expect(blocking, JSON.stringify(blocking, null, 2)).toEqual([]);
 
-  const focusNames: string[] = [];
+  const focusStates: Array<{ name: string; outlineStyle: string; outlineWidth: string }> = [];
   for (let index = 0; index < 10; index += 1) {
     await page.keyboard.press('Tab');
-    focusNames.push(await page.evaluate(() => {
+    focusStates.push(await page.evaluate(() => {
       const element = document.activeElement as HTMLElement | null;
-      if (!element) return '';
-      return element.getAttribute('aria-label')
-        || element.getAttribute('placeholder')
-        || element.textContent?.trim()
-        || element.tagName;
+      if (!element) return { name: '', outlineStyle: '', outlineWidth: '0px' };
+      const style = getComputedStyle(element);
+      return {
+        name: element.getAttribute('aria-label')
+          || element.getAttribute('placeholder')
+          || element.textContent?.trim()
+          || element.tagName,
+        outlineStyle: style.outlineStyle,
+        outlineWidth: style.outlineWidth,
+      };
     }));
   }
-  expect(focusNames).toContain('Start hands-free mode');
-  expect(focusNames).toContain("Ask about Pujan's work");
+
+  for (const name of ['Start hands-free mode', "Ask about Pujan's work"]) {
+    const focus = focusStates.find((state) => state.name === name);
+    expect(focus, `${name} was not reached by keyboard`).toBeDefined();
+    expect(focus!.outlineStyle).not.toBe('none');
+    expect(Number.parseFloat(focus!.outlineWidth)).toBeGreaterThanOrEqual(2);
+  }
 
   const input = page.getByRole('textbox', { name: "Ask about Pujan's work" });
   await input.fill(QUESTION);

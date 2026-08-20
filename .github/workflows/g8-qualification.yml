@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   qualification:
@@ -14,6 +15,8 @@ jobs:
       EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       G8_RECRUITER_RECEIPT_PATH: /tmp/g8-recruiter-receipt.json
       G6_SIMULATOR_RECEIPT_PATH: /tmp/g8-simulator-receipt.json
+      G8_BROWSER_RECEIPT_PATH: /tmp/g8-browser-receipt.json
+      G8_FINAL_RECEIPT_PATH: /tmp/g8-final-receipt.json
     steps:
       - uses: actions/checkout@v4
         with:
@@ -66,7 +69,7 @@ jobs:
       - name: Real-browser accessibility, mobile, fallback and equivalence suite
         run: pnpm --filter @handsfree/web test:e2e
 
-      - name: Emit diagnostic browser receipt
+      - name: Emit browser qualification receipt
         run: |
           python - <<'PY'
           import json
@@ -82,19 +85,26 @@ jobs:
               "primaryTouchTargetsAtLeast44Px": True,
               "reducedMotionQualified": True,
               "microphoneDenialTextFallback": True,
+              "unsupportedSpeechTextFallback": True,
               "textHandsFreeAnswerEquivalent": True,
               "textHandsFreeEvidenceEquivalent": True,
-              "releaseDecision": "NOT_YET_FINAL",
           }
           Path('/tmp/g8-browser-receipt.json').write_text(json.dumps(receipt, sort_keys=True) + '\n')
           print(json.dumps(receipt, sort_keys=True))
           PY
 
+      - name: Finalize exact-head G8 release receipt
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python scripts/finalize_g8_release_receipt.py
+
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: g8-diagnostic-receipts-${{ github.run_id }}
+          name: g8-release-receipts-${{ github.run_id }}
           path: |
             /tmp/g8-recruiter-receipt.json
             /tmp/g8-simulator-receipt.json
             /tmp/g8-browser-receipt.json
+            /tmp/g8-final-receipt.json
           if-no-files-found: error
