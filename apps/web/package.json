@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "playwright test --config=playwright.config.ts"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
@@ -16,6 +17,8 @@
     "react-dom": "latest"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.62.1",
     "@testing-library/react": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
