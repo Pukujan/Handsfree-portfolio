@@ -129,15 +129,14 @@ def main() -> None:
             raise SystemExit("G3 live Slice-1 turns did not complete")
         if event(first, "answer.delta").payload["claimIds"] != ["clm_portfolio_fossil_durable_truth_0001"]:
             raise SystemExit("first Slice-1 answer used unexpected claims")
-        if event(second, "answer.planned").payload["dialogueAct"] != "CORRECT_PREMISE":
-            raise SystemExit("Neo4j follow-up did not preserve FOSSIL conversation subject")
+        if event(second, "answer.planned").payload["dialogueAct"] != "EXPLAIN":
+            raise SystemExit("Neo4j follow-up was not treated as an explanatory comparison")
         if event(second, "turn.accepted").payload["activeSubject"] != "FOSSIL":
             raise SystemExit("follow-up lost active FOSSIL subject")
-        if event(second, "answer.delta").payload["claimIds"] != [
-            "clm_portfolio_fossil_projection_0001",
-            "clm_portfolio_fossil_durable_truth_0001",
-        ]:
-            raise SystemExit("Neo4j follow-up used unexpected claims")
+        if event(second, "answer.delta").payload["claimIds"] != ["clm_portfolio_fossil_projection_0001"]:
+            raise SystemExit("Neo4j follow-up did not honor the concise spoken-claim budget")
+        if event(second, "answer.delta").payload["text"].startswith("Not quite. "):
+            raise SystemExit("open Neo4j comparison was incorrectly framed as premise correction")
         if event(unsupported, "answer.delta").payload["text"] != ABSTENTION_TEXT:
             raise SystemExit("unsupported public question did not abstain")
         if event(unsupported, "answer.delta").payload["evidenceIds"]:
