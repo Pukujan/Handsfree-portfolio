@@ -1,0 +1,19 @@
+{$PORTFOLIO_SITE_ADDRESS} {
+    encode zstd gzip
+
+    @api path /health /v1/*
+    reverse_proxy @api api:8000 {
+        flush_interval -1
+    }
+
+    root * /srv
+    try_files {path} /index.html
+    file_server
+
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+        X-Frame-Options DENY
+        -Server
+    }
+}
