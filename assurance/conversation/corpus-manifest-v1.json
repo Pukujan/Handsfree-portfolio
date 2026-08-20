@@ -53,7 +53,7 @@
     {
       "id": "R-MAITRA-2025",
       "kind": "paper",
-      "title": "Dialogue Acts as a Lens on Human\u2013LLM Interaction: Analyzing Conversational Norms in Model-Generated Responses",
+      "title": "Dialogue Acts as a Lens on Human–LLM Interaction: Analyzing Conversational Norms in Model-Generated Responses",
       "canonicalUrl": "https://aclanthology.org/2025.hcinlp-1.25/",
       "researchRoles": [
         "dialogue_act_fit",
@@ -141,6 +141,33 @@
           "categorical_patterns",
           "source_ids_only",
           "lexical_feature_counts"
+        ]
+      }
+    },
+    {
+      "id": "D-MRDA",
+      "kind": "dataset",
+      "title": "ICSI Meeting Recorder Dialog Act Corpus public mirror",
+      "canonicalUrl": "https://github.com/NathanDuran/MRDA-Corpus/tree/58006b32d4e36ca518e365899924cd56035466a2",
+      "researchRoles": [
+        "professional_human_dialogue",
+        "dialogue_act_transition",
+        "acknowledgement",
+        "backchannel",
+        "repair_and_interruption",
+        "domain_transfer"
+      ],
+      "license": {
+        "status": "review_required",
+        "identifier": "GPL-3.0-repository-license; underlying-corpus-rights-not-independently-verified",
+        "rawRedistributionAllowed": false
+      },
+      "ingestion": {
+        "status": "derived_features_only",
+        "allowedOutputs": [
+          "aggregate_statistics",
+          "categorical_patterns",
+          "source_ids_only"
         ]
       }
     },
