@@ -5,6 +5,22 @@ from handsfree_portfolio.domain.models import AnswerPlan, EvidenceRef, Supported
 from handsfree_portfolio.domain.retrieval import RetrievalResult
 from handsfree_portfolio.ports.interfaces import ClaimCatalogPort
 
+SPOKEN_CLAIM_BUDGET = 1
+EXPLICIT_PREMISE_MARKERS = (
+    "i thought",
+    "you said",
+    "but you",
+    "isn't",
+    "isnt",
+    "aren't",
+    "arent",
+    "doesn't that mean",
+    "doesnt that mean",
+    "so you're",
+    "so you are",
+    "actually",
+)
+
 
 def infer_subject(question: str, previous_subject: str | None) -> str | None:
     lowered = question.lower()
@@ -23,13 +39,18 @@ def update_referents(subject: str | None, previous: dict[str, str]) -> dict[str,
     return referents
 
 
+def explicit_premise_challenge(question: str) -> bool:
+    lowered = question.strip().lower()
+    return any(marker in lowered for marker in EXPLICIT_PREMISE_MARKERS)
+
+
 def dialogue_act(question: str, subject: str | None, result: RetrievalResult) -> str:
     if result.abstained:
         return "ABSTAIN"
-    lowered = question.lower()
-    if subject == "FOSSIL" and "neo4j" in lowered:
+    lowered = question.strip().lower()
+    if subject == "FOSSIL" and "neo4j" in lowered and explicit_premise_challenge(question):
         return "CORRECT_PREMISE"
-    if question.strip().lower().startswith("why"):
+    if lowered.startswith("why"):
         return "EXPLAIN"
     return "ANSWER_DIRECT"
 
@@ -61,7 +82,12 @@ def build_answer_plan(
             evidence=(),
         )
 
-    records = tuple(catalog.get(claim_id) for claim_id in result.claim_ids)
+    # Retrieval may keep multiple candidates for ranking/evidence drill-down, but the
+    # first-contact spoken answer realizes only the highest-ranked supported claim.
+    # This preserves retrieval behavior while keeping user-facing speech inside the
+    # measured human response-length envelope.
+    selected_claim_ids = result.claim_ids[:SPOKEN_CLAIM_BUDGET]
+    records = tuple(catalog.get(claim_id) for claim_id in selected_claim_ids)
     evidence: list[EvidenceRef] = []
     seen_evidence: set[str] = set()
     for record in records:
