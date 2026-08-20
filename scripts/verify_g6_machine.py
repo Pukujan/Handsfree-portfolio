@@ -138,6 +138,35 @@ def validate_corpus_transition_receipt() -> tuple[str, dict | None]:
     return str(receipt.get("graphRuntimeAdmission", "NOT_EARNED")), receipt
 
 
+def validate_utterance_bridge_receipt() -> tuple[str, dict | None]:
+    value = os.environ.get("G6_UTTERANCE_BRIDGE_RECEIPT_PATH")
+    if not value:
+        return "REQUIRED", None
+    path = Path(value)
+    if not path.exists():
+        raise SystemExit(f"G6_UTTERANCE_BRIDGE_RECEIPT_PATH does not exist: {path}")
+    receipt = load(path)
+    if receipt.get("status") != "PASS":
+        raise SystemExit("utterance-to-act bridge benchmark did not pass")
+    if receipt.get("sourceRevision") != "fe0c8e65cfcd8462bd33c86e35f21addc84ca82b":
+        raise SystemExit("utterance bridge receipt is not pinned to the reviewed MultiWOZ revision")
+    if receipt.get("classifierKind") != "deterministic_lexical_baseline":
+        raise SystemExit("first utterance bridge must remain the deterministic lexical control")
+    if receipt.get("rawDialogueEmitted") is not False or receipt.get("factualAuthority") is not False:
+        raise SystemExit("utterance bridge crossed the style-only authority boundary")
+    if receipt.get("testExampleCount", 0) < 100:
+        raise SystemExit("utterance bridge evaluation sample is unexpectedly small")
+    if receipt.get("graphRuntimeAdmission") != "NOT_RUNTIME_ADMITTED":
+        raise SystemExit("utterance bridge benchmark cannot directly admit graph runtime complexity")
+    evidence = str(receipt.get("semanticMatcherEvidence", "UNKNOWN"))
+    if evidence not in {
+        "NOT_EARNED_YET_DETERMINISTIC_BRIDGE_SUFFICIENT",
+        "MOTIVATED_BY_MEASURED_BRIDGE_FAILURE",
+    }:
+        raise SystemExit(f"unexpected semantic matcher evidence state: {evidence}")
+    return evidence, receipt
+
+
 def main() -> None:
     properties_doc = load(ASSURANCE / "catalog" / "properties-v1.json")
     personas_doc = load(ASSURANCE / "personas" / "personas-v1.json")
@@ -184,6 +213,7 @@ def main() -> None:
 
     dialogue_status, dialogue_receipt = validate_dialogue_baseline_receipt()
     graph_evidence, corpus_transition_receipt = validate_corpus_transition_receipt()
+    semantic_evidence, utterance_bridge_receipt = validate_utterance_bridge_receipt()
     receipt = {
         "machineStatus": "MACHINE_ASSURANCE_PASS",
         "naturalnessQualification": dialogue_status,
@@ -199,6 +229,7 @@ def main() -> None:
         "naturalnessEvidenceAuthority": "public_human_dialogue_corpora_and_peer_reviewed_research",
         "factualAuthorityForStyleRetrieval": False,
         "corpusTransitionGraphEvidence": graph_evidence,
+        "semanticMatcherEvidence": semantic_evidence,
         "workflowSha": checked_out_revision(),
     }
     if dialogue_receipt is not None:
@@ -233,6 +264,33 @@ def main() -> None:
                 "conditionalGraphTop1Accuracy",
                 "conditionalGraphAbsoluteGain",
                 "conditionalGraphCoverage",
+                "graphRuntimeAdmission",
+                "rawDialogueEmitted",
+                "factualAuthority",
+            )
+        }
+
+    if utterance_bridge_receipt is not None:
+        receipt["utteranceBridgeSummary"] = {
+            key: utterance_bridge_receipt[key]
+            for key in (
+                "source",
+                "sourceRevision",
+                "trainingSplit",
+                "evaluationSplit",
+                "trainingExampleCount",
+                "testExampleCount",
+                "classifier",
+                "classifierKind",
+                "userActClassCount",
+                "vocabularySize",
+                "userActTop1Accuracy",
+                "globalSystemActTop1Accuracy",
+                "endToEndGraphTop1Accuracy",
+                "endToEndGraphAbsoluteGain",
+                "endToEndGraphCoverage",
+                "oracleGraphGainRetention",
+                "semanticMatcherEvidence",
                 "graphRuntimeAdmission",
                 "rawDialogueEmitted",
                 "factualAuthority",
