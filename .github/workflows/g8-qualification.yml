@@ -4,11 +4,8 @@ on:
   pull_request:
   workflow_dispatch:
 
-# Temporary bootstrap permission: the first G8 run materializes the lockfile
-# changes introduced by Playwright/axe test-only dependencies. This permission
-# is removed before the qualification candidate is frozen.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   qualification:
@@ -54,25 +51,6 @@ jobs:
         run: |
           corepack enable
           corepack prepare pnpm@10.15.1 --activate
-
-      - name: Bootstrap exact G8 lockfile
-        run: |
-          pnpm install --lockfile-only
-          pnpm install --lockfile-only --frozen-lockfile
-          test -s pnpm-lock.yaml
-
-      - name: Persist G8 test-tool lockfile on PR branch
-        if: github.event_name == 'pull_request'
-        env:
-          HEAD_BRANCH: ${{ github.head_ref }}
-        run: |
-          if test -n "$(git status --porcelain -- pnpm-lock.yaml)"; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add -- pnpm-lock.yaml
-            git commit -m "g8 lock browser qualification dependencies"
-            git push origin "HEAD:${HEAD_BRANCH}"
-          fi
 
       - name: Install frozen web workspace
         run: pnpm install --frozen-lockfile
