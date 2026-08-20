@@ -34,20 +34,46 @@ def test_explicit_false_premise_can_use_correction_prefix() -> None:
     assert not MODULE.misapplied_correction(question, answer)
 
 
+def test_ratio_question_floor_is_derived_only_from_human_median_question_lengths() -> None:
+    multiwoz = (
+        ("one two three four five", "answer"),
+        ("one two three four five six", "answer"),
+        ("one two three four five six seven", "answer"),
+    )
+    mrda = (
+        ("one two three four", "answer"),
+        ("one two three four five", "answer"),
+        ("one two three four five six", "answer"),
+    )
+    assert MODULE.derive_ratio_question_floor(multiwoz, mrda) == 5
+
+
+def test_short_question_raw_ratio_remains_diagnostic_but_floor_normalized_ratio_is_stable() -> None:
+    stats = MODULE.surface_stats(
+        (("What is FOSSIL?", "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twentyone twentytwo"),),
+        ratio_question_floor=5,
+    )
+    assert stats["p90ResponseToQuestionWordRatio"] > 7.0
+    assert stats["p90FloorNormalizedResponseToQuestionWordRatio"] == 4.4
+
+
 def test_surface_envelope_uses_human_percentiles_and_zero_assistantese_policy() -> None:
     multiwoz = {
         "pairCount": 200,
         "p95ResponseWords": 25.0,
-        "p90ResponseToQuestionWordRatio": 4.0,
+        "ratioQuestionFloorWords": 5,
+        "p90FloorNormalizedResponseToQuestionWordRatio": 4.0,
     }
     mrda = {
         "pairCount": 200,
         "p95ResponseWords": 20.0,
-        "p90ResponseToQuestionWordRatio": 3.0,
+        "ratioQuestionFloorWords": 5,
+        "p90FloorNormalizedResponseToQuestionWordRatio": 3.0,
     }
     production = {
         "medianResponseWords": 20.0,
-        "p90ResponseToQuestionWordRatio": 3.5,
+        "ratioQuestionFloorWords": 5,
+        "p90FloorNormalizedResponseToQuestionWordRatio": 3.5,
         "assistantesePrefixRate": 0.0,
         "unsolicitedClosingRate": 0.0,
         "headingOrListRate": 0.0,
@@ -57,18 +83,22 @@ def test_surface_envelope_uses_human_percentiles_and_zero_assistantese_policy() 
     assert status == "PASS"
     assert defects == []
     assert envelope["maximumMedianResponseWords"] == 25.0
-    assert envelope["maximumP90ResponseToQuestionWordRatio"] == 4.0
+    assert envelope["maximumP90FloorNormalizedResponseToQuestionWordRatio"] == 4.0
+    assert envelope["ratioQuestionFloorWords"] == 5
+    assert envelope["rawP90ResponseToQuestionWordRatioDiagnosticOnly"] is True
 
 
 def test_surface_envelope_reports_specific_defects_without_changing_renderer() -> None:
     human = {
         "pairCount": 200,
         "p95ResponseWords": 20.0,
-        "p90ResponseToQuestionWordRatio": 3.0,
+        "ratioQuestionFloorWords": 5,
+        "p90FloorNormalizedResponseToQuestionWordRatio": 3.0,
     }
     production = {
         "medianResponseWords": 21.0,
-        "p90ResponseToQuestionWordRatio": 4.0,
+        "ratioQuestionFloorWords": 5,
+        "p90FloorNormalizedResponseToQuestionWordRatio": 4.0,
         "assistantesePrefixRate": 0.0,
         "unsolicitedClosingRate": 0.0,
         "headingOrListRate": 0.0,
@@ -78,6 +108,6 @@ def test_surface_envelope_reports_specific_defects_without_changing_renderer() -
     assert status == "MEASURED_SURFACE_DEFECT"
     assert defects == [
         "MEDIAN_RESPONSE_OVER_HUMAN_P95",
-        "RESPONSE_TO_QUESTION_RATIO_ABOVE_HUMAN_P90",
+        "FLOOR_NORMALIZED_RESPONSE_TO_QUESTION_RATIO_ABOVE_HUMAN_P90",
         "MISAPPLIED_CORRECTION_FRAMING",
     ]
