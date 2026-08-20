@@ -1,0 +1,61 @@
+services:
+  caddy:
+    build:
+      context: ..
+      dockerfile: deploy/caddy.Dockerfile
+    restart: unless-stopped
+    environment:
+      PORTFOLIO_SITE_ADDRESS: ${PORTFOLIO_SITE_ADDRESS:?set PORTFOLIO_SITE_ADDRESS}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - edge
+      - backend
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/api.Dockerfile
+    restart: unless-stopped
+    environment:
+      PORTFOLIO_PACK_ROOT: /var/lib/handsfree/portfolio-public
+      FOSSIL_SCHEMA_ROOT: /opt/fossil-schemas
+      PORTFOLIO_CACHE_MAX_ENTRIES: ${PORTFOLIO_CACHE_MAX_ENTRIES:-256}
+    expose:
+      - "8000"
+    volumes:
+      - type: bind
+        source: ${PORTFOLIO_PACK_ROOT_HOST:?set PORTFOLIO_PACK_ROOT_HOST}
+        target: /var/lib/handsfree/portfolio-public
+        read_only: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks:
+      - backend
+
+networks:
+  edge: {}
+  backend:
+    internal: true
+
+volumes:
+  caddy_data: {}
+  caddy_config: {}
