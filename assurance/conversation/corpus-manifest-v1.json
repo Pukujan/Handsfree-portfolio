@@ -139,7 +139,8 @@
         "allowedOutputs": [
           "aggregate_statistics",
           "categorical_patterns",
-          "source_ids_only"
+          "source_ids_only",
+          "lexical_feature_counts"
         ]
       }
     },
