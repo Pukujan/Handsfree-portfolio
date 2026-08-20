@@ -15,6 +15,8 @@ jobs:
       FOSSIL_SCHEMA_ROOT: /tmp/fossil-core/schemas
       MULTIWOZ_SHA: fe0c8e65cfcd8462bd33c86e35f21addc84ca82b
       MULTIWOZ_ROOT: /tmp/multiwoz/data/MultiWOZ_2.2
+      MRDA_SHA: 58006b32d4e36ca518e365899924cd56035466a2
+      MRDA_ROOT: /tmp/mrda/mrda_data
       G6_MUTATION_RECEIPT_PATH: /tmp/g6-mutation-receipt.json
       G6_SIMULATOR_RECEIPT_PATH: /tmp/g6-simulator-receipt.json
       G6_DIALOGUE_BASELINE_RECEIPT_PATH: /tmp/g6-dialogue-baseline-receipt.json
@@ -22,6 +24,7 @@ jobs:
       G6_UTTERANCE_BRIDGE_RECEIPT_PATH: /tmp/g6-utterance-bridge-receipt.json
       G6_STYLE_MODEL_RECEIPT_PATH: /tmp/g6-style-model-receipt.json
       G6_DERIVED_STYLE_MODEL_PATH: /tmp/g6-derived-style-model.json
+      G6_MRDA_TRANSFER_RECEIPT_PATH: /tmp/g6-mrda-transfer-receipt.json
       G6_MACHINE_RECEIPT_PATH: /tmp/g6-machine-receipt.json
       G6_CHECKED_OUT_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
       G6_CANDIDATE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -77,6 +80,7 @@ jobs:
             services/portfolio-ai/tests/test_g6_multiwoz_transitions.py \
             services/portfolio-ai/tests/test_g6_multiwoz_utterance_bridge.py \
             services/portfolio-ai/tests/test_g6_style_model.py \
+            services/portfolio-ai/tests/test_g6_mrda_transfer.py \
             services/portfolio-ai/tests/test_api.py
 
       - name: Hands-free, latency and UI behavior tests
@@ -105,6 +109,18 @@ jobs:
 
       - name: Distill compact corpus-derived style model
         run: python scripts/build_g6_style_model.py
+
+      - name: Checkout pinned MRDA professional human-meeting corpus
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/NathanDuran/MRDA-Corpus.git /tmp/mrda
+          git -C /tmp/mrda fetch --depth=1 origin "$MRDA_SHA"
+          git -C /tmp/mrda sparse-checkout init --no-cone
+          printf '/LICENSE\n/mrda_data/train_set.txt\n/mrda_data/test_set.txt\n' > /tmp/mrda/.git/info/sparse-checkout
+          git -C /tmp/mrda checkout --detach FETCH_HEAD
+          test "$(git -C /tmp/mrda rev-parse HEAD)" = "$MRDA_SHA"
+
+      - name: Measure professional human-dialogue domain transfer
+        run: python scripts/verify_g6_mrda_transfer.py
 
       - name: Kill critical production-source mutants
         run: python scripts/verify_g6_mutations.py
