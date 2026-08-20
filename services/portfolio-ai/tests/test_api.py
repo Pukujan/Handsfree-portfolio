@@ -1,4 +1,5 @@
 import json
+import logging
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -77,6 +78,47 @@ def test_health_and_sse_turn_stream() -> None:
     assert state.json()["activeGeneration"] == 1
     assert state.json()["state"] == "complete"
     assert state.json()["activeSubject"] == "FOSSIL"
+
+
+def test_turn_observability_is_bounded_and_omits_raw_conversation_content(caplog) -> None:
+    conversation_id = "raw-conversation-id-must-not-be-logged"
+    question = "What is FOSSIL?"
+    request_id = "req-observability-1"
+    kernel = fixture_kernel()
+    client = TestClient(create_app(lambda: kernel))
+    caplog.set_level(logging.INFO, logger="handsfree_portfolio.turn")
+
+    with client.stream(
+        "POST",
+        f"/v1/conversations/{conversation_id}/turns",
+        headers={"X-Request-ID": request_id},
+        json={"question": question},
+    ) as response:
+        assert response.status_code == 200
+        assert response.headers["x-request-id"] == request_id
+        "".join(response.iter_text())
+
+    records = [record for record in caplog.records if record.name == "handsfree_portfolio.turn"]
+    assert len(records) == 1
+    encoded = records[0].getMessage()
+    summary = json.loads(encoded)
+    assert summary["event"] == "portfolio.turn.summary"
+    assert summary["requestId"] == request_id
+    assert summary["outcome"] == "complete"
+    assert summary["retrievalLane"] == "retrieval"
+    assert summary["cacheHit"] is False
+    assert summary["cacheRevalidation"] == "not_applicable"
+    assert summary["answerContractVersion"] == "1.0.0"
+    assert summary["turnId"]
+    assert summary["generation"] == 1
+    assert summary["claimIds"]
+    assert summary["evidenceIds"]
+    assert len(summary["conversationHash"]) == 24
+    assert conversation_id not in encoded
+    assert question not in encoded
+    assert "question" not in summary
+    assert "audio" not in summary
+    assert "voice" not in summary
 
 
 def test_blank_question_rejected_before_streaming() -> None:

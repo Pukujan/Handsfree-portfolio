@@ -23,10 +23,10 @@ jobs:
       - name: Enable pnpm
         run: |
           corepack enable
-          corepack prepare pnpm@10 --activate
+          corepack prepare pnpm@10.15.1 --activate
 
       - name: Install web dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Build web
         run: pnpm build:web

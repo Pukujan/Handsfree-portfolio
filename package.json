@@ -1,6 +1,7 @@
 {
   "name": "handsfree-portfolio",
   "private": true,
+  "packageManager": "pnpm@10.15.1",
   "scripts": {
     "dev:web": "pnpm --filter @handsfree/web dev",
     "build:web": "pnpm --filter @handsfree/web build",
