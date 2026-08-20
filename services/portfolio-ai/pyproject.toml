@@ -11,16 +11,20 @@ dependencies = [
   "fastapi>=0.115,<1",
   "uvicorn>=0.30,<1",
   "pydantic>=2.7,<3",
-  "neo4j>=6.2,<7",
   "fossil-core @ git+https://github.com/Pukujan/fossil-core.git@b5fd57725c910b149910371964adb35d9280016e"
 ]
 
 [project.optional-dependencies]
+projection = [
+  "neo4j>=6.2,<7"
+]
 dev = [
   "pytest>=8,<10",
   "hypothesis>=6,<7",
   "httpx>=0.27,<1",
-  "jsonschema>=4,<5"
+  "jsonschema>=4,<5",
+  "PyYAML>=6,<7",
+  "neo4j>=6.2,<7"
 ]
 
 [tool.hatch.metadata]
