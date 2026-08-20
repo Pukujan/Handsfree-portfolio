@@ -47,7 +47,7 @@ jobs:
           node-version: '22'
 
       - name: Install web workspace
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - uses: actions/setup-python@v5
         with:

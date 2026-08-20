@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 COMPOSE_PATH = ROOT / "deploy" / "compose.production.yml"
 CADDY_PATH = ROOT / "deploy" / "Caddyfile"
 API_DOCKERFILE = ROOT / "deploy" / "api.Dockerfile"
+CADDY_DOCKERFILE = ROOT / "deploy" / "caddy.Dockerfile"
 WEB_ROOT = ROOT / "apps" / "web"
 PYPROJECT = ROOT / "services" / "portfolio-ai" / "pyproject.toml"
 
@@ -73,6 +74,21 @@ def _scan_web_env() -> set[str]:
             continue
         found.update(pattern.findall(path.read_text(encoding="utf-8")))
     return found
+
+
+def _assert_digest_pinned_images(path: Path) -> list[str]:
+    images: list[str] = []
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or not line.upper().startswith("FROM "):
+            continue
+        image = line.split()[1]
+        images.append(image)
+        if "@sha256:" not in image:
+            _fail(f"production base image is not digest pinned in {path.name}: {image}")
+    if not images:
+        _fail(f"no base images found in {path.name}")
+    return images
 
 
 def verify() -> dict[str, Any]:
@@ -143,6 +159,8 @@ def verify() -> dict[str, Any]:
     if "[projection]" in api_dockerfile or "neo4j" in api_dockerfile or "graphiti" in api_dockerfile:
         _fail("api image must not install projection dependencies")
 
+    base_images = _assert_digest_pinned_images(API_DOCKERFILE) + _assert_digest_pinned_images(CADDY_DOCKERFILE)
+
     web_env = _scan_web_env()
     unexpected_web_env = sorted(web_env - ALLOWED_WEB_ENV)
     if unexpected_web_env:
@@ -162,6 +180,8 @@ def verify() -> dict[str, Any]:
         "frontendEnvironmentNames": sorted(web_env),
         "graphServiceDeployed": False,
         "apiRoutingIsolatedFromSpaFallback": True,
+        "baseImagesDigestPinned": True,
+        "baseImages": base_images,
     }
     return result
 

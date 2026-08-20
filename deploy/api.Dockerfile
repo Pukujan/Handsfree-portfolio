@@ -1,4 +1,4 @@
-FROM python:3.12-slim AS builder
+FROM python:3.12-slim@sha256:2c941e860699f878900b0edc2403613c234d4b32eda3cc9fa7036991a2a63c4a AS builder
 
 ARG FOSSIL_SHA=b5fd57725c910b149910371964adb35d9280016e
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
@@ -20,7 +20,7 @@ ENV PATH=/opt/venv/bin:$PATH
 COPY services/portfolio-ai /src/services/portfolio-ai
 RUN pip install /src/services/portfolio-ai
 
-FROM python:3.12-slim AS runtime
+FROM python:3.12-slim@sha256:2c941e860699f878900b0edc2403613c234d4b32eda3cc9fa7036991a2a63c4a AS runtime
 
 ENV PATH=/opt/venv/bin:$PATH \
     PYTHONDONTWRITEBYTECODE=1 \

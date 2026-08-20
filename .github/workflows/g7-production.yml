@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   production:
@@ -69,31 +69,11 @@ jobs:
       - name: Validate compose configuration
         run: docker compose -f deploy/compose.production.yml config >/tmp/g7-compose-rendered.yml
 
-      - name: Generate exact workspace lockfile candidate
+      - name: Verify committed workspace lockfile
         run: |
           npm install --global pnpm@10.15.1
-          pnpm install --lockfile-only
-          test -s pnpm-lock.yaml
           pnpm install --lockfile-only --frozen-lockfile
-
-      - name: Persist generated lockfile on the PR branch
-        if: github.event_name == 'pull_request'
-        env:
-          HEAD_BRANCH: ${{ github.head_ref }}
-        run: |
-          if test -n "$(git status --porcelain -- pnpm-lock.yaml)"; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add -- pnpm-lock.yaml
-            git commit -m "g7 lock web production dependencies"
-            git push origin "HEAD:${HEAD_BRANCH}"
-          fi
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: g7-pnpm-lock-${{ github.run_id }}
-          path: pnpm-lock.yaml
-          if-no-files-found: error
+          git diff --exit-code -- pnpm-lock.yaml
 
       - name: Build minimal production images
         run: docker compose -f deploy/compose.production.yml build
@@ -195,6 +175,11 @@ jobs:
                   'groundedSseAfterRestart': True,
                   'requestIdThroughCaddy': True,
                   'neo4jClientInApiImage': False,
+              },
+              'reproducibleBuild': {
+                  'committedFrozenPnpmLock': True,
+                  'pnpmVersion': '10.15.1',
+                  'baseImagesDigestPinned': topology['baseImagesDigestPinned'],
               },
               'graphServiceDeployed': False,
               'objectStoreCredentialsInPublicRuntime': False,
