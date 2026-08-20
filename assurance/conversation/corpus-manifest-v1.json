@@ -70,15 +70,6 @@
       "ingestion": {"status": "derived_features_only", "allowedOutputs": ["aggregate_statistics", "categorical_patterns", "source_ids_only"]}
     },
     {
-      "id": "M-MINILM-SEMANTIC",
-      "kind": "model",
-      "title": "sentence-transformers/all-MiniLM-L6-v2",
-      "canonicalUrl": "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/tree/1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
-      "researchRoles": ["evaluation_only_semantic_matching", "cross_domain_user_act_classification"],
-      "license": {"status": "verified", "identifier": "Apache-2.0", "rawRedistributionAllowed": false},
-      "ingestion": {"status": "evaluation_only", "allowedOutputs": ["aggregate_statistics", "categorical_predictions"]}
-    },
-    {
       "id": "D-EMPATHETIC",
       "kind": "dataset",
       "title": "EmpatheticDialogues human conversation corpus",
