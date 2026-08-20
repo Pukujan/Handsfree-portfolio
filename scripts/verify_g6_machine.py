@@ -167,6 +167,38 @@ def validate_utterance_bridge_receipt() -> tuple[str, dict | None]:
     return evidence, receipt
 
 
+def validate_mrda_transfer_receipt() -> tuple[str, str, dict | None]:
+    value = os.environ.get("G6_MRDA_TRANSFER_RECEIPT_PATH")
+    if not value:
+        return "REQUIRED", "UNKNOWN", None
+    path = Path(value)
+    if not path.exists():
+        raise SystemExit(f"G6_MRDA_TRANSFER_RECEIPT_PATH does not exist: {path}")
+    receipt = load(path)
+    if receipt.get("status") != "PASS":
+        raise SystemExit("MRDA transfer diagnostic did not complete")
+    if receipt.get("sourceRevision") != "58006b32d4e36ca518e365899924cd56035466a2":
+        raise SystemExit("MRDA transfer receipt is not pinned to the reviewed source revision")
+    if receipt.get("rawDialogueEmitted") is not False or receipt.get("factualAuthority") is not False:
+        raise SystemExit("MRDA transfer benchmark crossed the style-only authority boundary")
+    current = receipt.get("currentModelTransfer", {})
+    if current.get("pairCount", 0) < 100:
+        raise SystemExit("MRDA transfer benchmark sample is unexpectedly small")
+    qualification = str(receipt.get("qualificationStatus", "UNKNOWN"))
+    if qualification not in {"PASS", "MEASURED_DOMAIN_GAP"}:
+        raise SystemExit(f"unexpected MRDA qualification status: {qualification}")
+    semantic_evidence = str(receipt.get("semanticMatcherEvidence", "UNKNOWN"))
+    if semantic_evidence not in {
+        "MOTIVATED_BY_CROSS_DOMAIN_LEXICAL_FAILURE",
+        "NOT_EARNED_CROSS_DOMAIN_LEXICAL_BRIDGE_SUFFICIENT",
+    }:
+        raise SystemExit(f"unexpected MRDA semantic matcher evidence: {semantic_evidence}")
+    native_graph = str(receipt.get("nativeGraphEvidence", "UNKNOWN"))
+    if native_graph not in {"SECOND_CORPUS_GRAPH_EARNED", "SECOND_CORPUS_GRAPH_NOT_EARNED"}:
+        raise SystemExit(f"unexpected MRDA graph evidence: {native_graph}")
+    return qualification, semantic_evidence, receipt
+
+
 def main() -> None:
     properties_doc = load(ASSURANCE / "catalog" / "properties-v1.json")
     personas_doc = load(ASSURANCE / "personas" / "personas-v1.json")
@@ -213,10 +245,16 @@ def main() -> None:
 
     dialogue_status, dialogue_receipt = validate_dialogue_baseline_receipt()
     graph_evidence, corpus_transition_receipt = validate_corpus_transition_receipt()
-    semantic_evidence, utterance_bridge_receipt = validate_utterance_bridge_receipt()
+    multiwoz_semantic_evidence, utterance_bridge_receipt = validate_utterance_bridge_receipt()
+    transfer_status, transfer_semantic_evidence, mrda_transfer_receipt = validate_mrda_transfer_receipt()
+    semantic_evidence = (
+        transfer_semantic_evidence if mrda_transfer_receipt is not None else multiwoz_semantic_evidence
+    )
+    naturalness_status = transfer_status if mrda_transfer_receipt is not None else dialogue_status
+
     receipt = {
         "machineStatus": "MACHINE_ASSURANCE_PASS",
-        "naturalnessQualification": dialogue_status,
+        "naturalnessQualification": naturalness_status,
         "overallGateStatus": "CORPUS_NATURALNESS_QUALIFICATION_REQUIRED",
         "propertyCount": len(properties),
         "naturalnessPropertyCount": len(naturalness_properties),
@@ -295,6 +333,32 @@ def main() -> None:
                 "rawDialogueEmitted",
                 "factualAuthority",
             )
+        }
+
+    if mrda_transfer_receipt is not None:
+        current = mrda_transfer_receipt["currentModelTransfer"]
+        native = mrda_transfer_receipt["nativeMrdaGraph"]
+        receipt["professionalDomainTransferSummary"] = {
+            "source": mrda_transfer_receipt["source"],
+            "sourceRevision": mrda_transfer_receipt["sourceRevision"],
+            "sourceKind": mrda_transfer_receipt["sourceKind"],
+            "trainingSplit": mrda_transfer_receipt["trainingSplit"],
+            "evaluationSplit": mrda_transfer_receipt["evaluationSplit"],
+            "qualificationStatus": mrda_transfer_receipt["qualificationStatus"],
+            "semanticMatcherEvidence": mrda_transfer_receipt["semanticMatcherEvidence"],
+            "nativeGraphEvidence": mrda_transfer_receipt["nativeGraphEvidence"],
+            "pairCount": current["pairCount"],
+            "representableHumanResponseCoverage": current["representableHumanResponseCoverage"],
+            "scorableUserActTop1Accuracy": current["scorableUserActTop1Accuracy"],
+            "responseBaselineTop1Accuracy": current["responseBaselineTop1Accuracy"],
+            "responseTop1Accuracy": current["responseTop1Accuracy"],
+            "responseAbsoluteGain": current["responseAbsoluteGain"],
+            "missingHumanResponseClasses": current["missingHumanResponseClasses"],
+            "nativeGraphTop1Accuracy": native["conditionalGraphTop1Accuracy"],
+            "nativeGraphAbsoluteGain": native["conditionalGraphAbsoluteGain"],
+            "nativeGraphCoverage": native["conditionalGraphCoverage"],
+            "rawDialogueEmitted": mrda_transfer_receipt["rawDialogueEmitted"],
+            "factualAuthority": mrda_transfer_receipt["factualAuthority"],
         }
 
     target_value = os.environ.get("G6_MACHINE_RECEIPT_PATH")
