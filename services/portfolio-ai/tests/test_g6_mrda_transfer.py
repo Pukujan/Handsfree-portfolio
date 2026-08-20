@@ -2,8 +2,13 @@ from __future__ import annotations
 
 from collections import Counter
 import importlib.util
+import json
 from pathlib import Path
 import sys
+
+import pytest
+
+from scripts.verify_g6_machine import validate_mrda_transfer_receipt
 
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / "scripts" / "verify_g6_mrda_transfer.py"
@@ -63,3 +68,40 @@ def test_current_style_model_cannot_claim_full_mrda_move_coverage() -> None:
     assert representable / sum(target_counts.values()) == 0.9
     assert "F" not in MODULE.REPRESENTABLE_BASIC_RESPONSE_ACTS
     assert "D" not in MODULE.REPRESENTABLE_BASIC_RESPONSE_ACTS
+
+
+def mrda_receipt(**overrides: object) -> dict:
+    payload = {
+        "status": "PASS",
+        "qualificationStatus": "MEASURED_DOMAIN_GAP",
+        "sourceRevision": MODULE.EXPECTED_MRDA_SHA,
+        "rawDialogueEmitted": False,
+        "factualAuthority": False,
+        "semanticMatcherEvidence": "MOTIVATED_BY_CROSS_DOMAIN_LEXICAL_FAILURE",
+        "nativeGraphEvidence": "SECOND_CORPUS_GRAPH_NOT_EARNED",
+        "currentModelTransfer": {"pairCount": 9792},
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_machine_receipt_promotes_stronger_cross_domain_semantic_evidence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "mrda.json"
+    target.write_text(json.dumps(mrda_receipt()), encoding="utf-8")
+    monkeypatch.setenv("G6_MRDA_TRANSFER_RECEIPT_PATH", str(target))
+    qualification, semantic_evidence, receipt = validate_mrda_transfer_receipt()
+    assert qualification == "MEASURED_DOMAIN_GAP"
+    assert semantic_evidence == "MOTIVATED_BY_CROSS_DOMAIN_LEXICAL_FAILURE"
+    assert receipt is not None
+
+
+def test_machine_receipt_rejects_mrda_authority_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "mrda.json"
+    target.write_text(json.dumps(mrda_receipt(factualAuthority=True)), encoding="utf-8")
+    monkeypatch.setenv("G6_MRDA_TRANSFER_RECEIPT_PATH", str(target))
+    with pytest.raises(SystemExit, match="style-only authority boundary"):
+        validate_mrda_transfer_receipt()
