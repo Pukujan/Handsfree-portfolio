@@ -144,6 +144,9 @@ jobs:
           grep -q 'event: answer.grounded' /tmp/g7-sse-after.txt || fail
           grep -q 'event: turn.complete' /tmp/g7-sse-after.txt || fail
 
+      - name: Prove process restart during an active turn cannot publish stale output
+        run: bash scripts/verify_g7_active_restart.sh | tee /tmp/g7-active-restart-receipt.json
+
       - name: Finalize G7 machine receipt
         run: |
           python - <<'PY'
@@ -152,11 +155,13 @@ jobs:
 
           topology = json.loads(Path('/tmp/g7-topology-receipt.json').read_text())
           recovery = json.loads(Path('/tmp/g7-recovery-receipt.json').read_text())
+          active_restart = json.loads(Path('/tmp/g7-active-restart-receipt.json').read_text())
           receipt = {
               'workflowSha': os.environ['EXPECTED_SHA'],
               'status': 'G7_MACHINE_PASS',
               'topology': topology,
               'recovery': recovery,
+              'activeTurnRestart': active_restart,
               'observability': {
                   'boundedTerminalTurnSummary': True,
                   'requestIdEchoed': True,
@@ -196,5 +201,6 @@ jobs:
             /tmp/g7-recovery-receipt.json
             /tmp/g7-materialize-receipt.json
             /tmp/g7-bundle-receipt.json
+            /tmp/g7-active-restart-receipt.json
             /tmp/g7-machine-receipt.json
           if-no-files-found: error
