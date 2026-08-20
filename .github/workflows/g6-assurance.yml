@@ -17,8 +17,6 @@ jobs:
       MULTIWOZ_ROOT: /tmp/multiwoz/data/MultiWOZ_2.2
       MRDA_SHA: 58006b32d4e36ca518e365899924cd56035466a2
       MRDA_ROOT: /tmp/mrda/mrda_data
-      G6_SEMANTIC_MODEL_REVISION: 1110a243fdf4706b3f48f1d95db1a4f5529b4d41
-      HF_HUB_DISABLE_TELEMETRY: '1'
       G6_MUTATION_RECEIPT_PATH: /tmp/g6-mutation-receipt.json
       G6_SIMULATOR_RECEIPT_PATH: /tmp/g6-simulator-receipt.json
       G6_DIALOGUE_BASELINE_RECEIPT_PATH: /tmp/g6-dialogue-baseline-receipt.json
@@ -27,7 +25,7 @@ jobs:
       G6_STYLE_MODEL_RECEIPT_PATH: /tmp/g6-style-model-receipt.json
       G6_DERIVED_STYLE_MODEL_PATH: /tmp/g6-derived-style-model.json
       G6_MRDA_TRANSFER_RECEIPT_PATH: /tmp/g6-mrda-transfer-receipt.json
-      G6_SEMANTIC_TRANSFER_RECEIPT_PATH: /tmp/g6-semantic-transfer-receipt.json
+      G6_SHARED_ONTOLOGY_RECEIPT_PATH: /tmp/g6-shared-ontology-receipt.json
       G6_MACHINE_RECEIPT_PATH: /tmp/g6-machine-receipt.json
       G6_CHECKED_OUT_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
       G6_CANDIDATE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -85,6 +83,8 @@ jobs:
             services/portfolio-ai/tests/test_g6_style_model.py \
             services/portfolio-ai/tests/test_g6_mrda_transfer.py \
             services/portfolio-ai/tests/test_g6_semantic_transfer.py \
+            services/portfolio-ai/tests/test_g6_shared_ontology.py \
+            services/portfolio-ai/tests/test_g6_naturalness_finalizer.py \
             services/portfolio-ai/tests/test_api.py
 
       - name: Hands-free, latency and UI behavior tests
@@ -126,17 +126,17 @@ jobs:
       - name: Measure professional human-dialogue domain transfer
         run: python scripts/verify_g6_mrda_transfer.py
 
+      - name: Measure shared ontology and distributional discourse graph
+        run: python scripts/verify_g6_shared_ontology.py
+
       - name: Kill critical production-source mutants
         run: python scripts/verify_g6_mutations.py
 
-      - name: Install evaluation-only semantic dependency
-        run: python -m pip install 'sentence-transformers==5.6.1'
-
-      - name: Measure pinned semantic cross-domain bridge
-        run: python scripts/verify_g6_semantic_transfer.py
-
       - name: Emit machine-assurance / corpus-qualification receipt
         run: python scripts/verify_g6_machine.py
+
+      - name: Finalize rejected semantic and shared-ontology evidence
+        run: python scripts/finalize_g6_naturalness_receipt.py
 
       - name: Upload G6 machine receipts
         uses: actions/upload-artifact@v4
