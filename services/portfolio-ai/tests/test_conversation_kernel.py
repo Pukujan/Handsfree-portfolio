@@ -11,6 +11,10 @@ from handsfree_portfolio.adapters.clock import SystemClock
 from handsfree_portfolio.adapters.retrieval_policy import load_retrieval_policy
 from handsfree_portfolio.adapters.session_memory import InMemoryConversationSessions
 from handsfree_portfolio.application.conversation_kernel import ConversationKernel
+from handsfree_portfolio.application.conversation_planning import (
+    SPOKEN_PROPOSITION_WORD_BUDGET,
+    extractive_spoken_proposition,
+)
 from handsfree_portfolio.application.grounded_rendering import (
     ABSTENTION_TEXT,
     ClaimBoundTemplateRenderer,
@@ -118,6 +122,13 @@ def assert_contracts(events, state) -> None:
     state_validator.validate(state.to_contract())
 
 
+def test_reviewed_slice1_claims_have_extractable_spoken_prefixes() -> None:
+    for record in FixtureCatalog().all_supported():
+        spoken = extractive_spoken_proposition(record.proposition)
+        assert record.proposition.rstrip(".!?").startswith(spoken.rstrip(".!?"))
+        assert len(spoken.rstrip(".").split()) <= SPOKEN_PROPOSITION_WORD_BUDGET
+
+
 def test_slice1_two_turn_context_and_grounded_evidence() -> None:
     sessions = InMemoryConversationSessions()
     kernel = make_kernel(sessions=sessions)
@@ -130,7 +141,9 @@ def test_slice1_two_turn_context_and_grounded_evidence() -> None:
         "answer.delta", "answer.grounded", "turn.complete",
     ]
     assert event_of(first, "turn.accepted").payload["activeSubject"] == "FOSSIL"
-    assert event_of(first, "answer.delta").payload["claimIds"] == ["clm_portfolio_fossil_durable_truth_0001"]
+    first_delta = event_of(first, "answer.delta")
+    assert first_delta.payload["claimIds"] == ["clm_portfolio_fossil_durable_truth_0001"]
+    assert first_delta.payload["text"] == "FOSSIL's durable knowledge authority is its evidence."
 
     accepted = event_of(second, "turn.accepted")
     plan = event_of(second, "answer.planned")
@@ -139,6 +152,7 @@ def test_slice1_two_turn_context_and_grounded_evidence() -> None:
     assert accepted.payload["referents"]["it"] == "FOSSIL"
     assert plan.payload["dialogueAct"] == "EXPLAIN"
     assert not delta.payload["text"].startswith("Not quite. ")
+    assert delta.payload["text"] == "Graphiti and Neo4j are replaceable projections of already-durable FOSSIL knowledge."
     assert delta.payload["claimIds"] == ["clm_portfolio_fossil_projection_0001"]
     assert len(delta.payload["evidenceIds"]) == 1
     assert event_of(second, "answer.grounded").payload["evidenceIds"] == delta.payload["evidenceIds"]
