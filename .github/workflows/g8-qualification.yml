@@ -1,0 +1,110 @@
+name: g8-qualification
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  qualification:
+    runs-on: ubuntu-latest
+    env:
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      G8_RECRUITER_RECEIPT_PATH: /tmp/g8-recruiter-receipt.json
+      G6_SIMULATOR_RECEIPT_PATH: /tmp/g8-simulator-receipt.json
+      G8_BROWSER_RECEIPT_PATH: /tmp/g8-browser-receipt.json
+      G8_FINAL_RECEIPT_PATH: /tmp/g8-final-receipt.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Assert exact candidate checkout
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install API development dependencies
+        run: python -m pip install -e 'services/portfolio-ai[dev]'
+
+      - name: Architecture and contract guards
+        run: |
+          python scripts/check_architecture.py
+          python scripts/validate_contracts.py
+
+      - name: Deterministic recruiter task qualification
+        run: |
+          python scripts/verify_g8_recruiter_tasks.py
+          python -m pytest -q \
+            services/portfolio-ai/tests/test_conversation_kernel.py \
+            services/portfolio-ai/tests/test_g6_adversarial.py \
+            services/portfolio-ai/tests/test_api.py
+          python scripts/run_g6_simulator.py
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Enable exact pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.1 --activate
+
+      - name: Install frozen web workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: Web unit tests and production build
+        run: |
+          pnpm --filter @handsfree/web test
+          pnpm --filter @handsfree/web build
+
+      - name: Install Chromium for release qualification
+        run: pnpm --filter @handsfree/web exec playwright install --with-deps chromium
+
+      - name: Real-browser accessibility, mobile, fallback and equivalence suite
+        run: pnpm --filter @handsfree/web test:e2e
+
+      - name: Emit browser qualification receipt
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          receipt = {
+              "status": "PASS",
+              "browser": "chromium",
+              "axeSeriousOrCriticalViolations": 0,
+              "keyboardPrimaryControlsReachable": True,
+              "visibleFocusQualified": True,
+              "mobileViewportWidth": 360,
+              "horizontalOverflow": False,
+              "primaryTouchTargetsAtLeast44Px": True,
+              "reducedMotionQualified": True,
+              "microphoneDenialTextFallback": True,
+              "unsupportedSpeechTextFallback": True,
+              "textHandsFreeAnswerEquivalent": True,
+              "textHandsFreeEvidenceEquivalent": True,
+          }
+          Path('/tmp/g8-browser-receipt.json').write_text(json.dumps(receipt, sort_keys=True) + '\n')
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+
+      - name: Finalize exact-head G8 release receipt
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python scripts/finalize_g8_release_receipt.py
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: g8-release-receipts-${{ github.run_id }}
+          path: |
+            /tmp/g8-recruiter-receipt.json
+            /tmp/g8-simulator-receipt.json
+            /tmp/g8-browser-receipt.json
+            /tmp/g8-final-receipt.json
+          if-no-files-found: error

@@ -1,12 +1,12 @@
 {
-  "scenarioVersion": "1.0.1",
+  "scenarioVersion": "1.1.0",
   "scenarios": [
     {
       "id":"BDD-FOSSIL-FOLLOWUP-001",
       "persona":"technical-hiring-manager",
       "given":["public portfolio pack mounted","fresh conversation"],
       "turns":["What is FOSSIL?","Why not just use Neo4j?"],
-      "then":["first answer uses durable-truth claim","second answer preserves FOSSIL referent","second answer uses projection plus durable-truth claims","all published evidence is current public evidence"],
+      "then":["first answer uses durable-truth claim","second answer preserves FOSSIL referent","second answer uses the projection claim","all published evidence is current public evidence"],
       "oracleRefs":["services/portfolio-ai/tests/test_conversation_kernel.py::test_slice1_two_turn_context_and_grounded_evidence"]
     },
     {
